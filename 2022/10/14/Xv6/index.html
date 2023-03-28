@@ -1,0 +1,940 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta><title>Xv6 - Humoooor&#039;s Blog</title><link rel="manifest" href="/manifest.json"><meta name="application-name" content="Humoooor&#039;s Blog"><meta name="msapplication-TileImage" content="/img/MyLogo.jpg"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Humoooor&#039;s Blog"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="description" content="本文是笔者在学习 MIT 6.1810 2022 Fall 阅读 xv6 文档时所写，大部分是将原文翻译，笔者尽可能加入自己的理解并排版，应该会持续更新直到文档读完"><meta property="og:type" content="blog"><meta property="og:title" content="Xv6"><meta property="og:url" content="https://humoooor.cn/2022/10/14/Xv6/"><meta property="og:site_name" content="Humoooor&#039;s Blog"><meta property="og:description" content="本文是笔者在学习 MIT 6.1810 2022 Fall 阅读 xv6 文档时所写，大部分是将原文翻译，笔者尽可能加入自己的理解并排版，应该会持续更新直到文档读完"><meta property="og:locale" content="zh_CN"><meta property="og:image" content="https://humoooor.cn/img/og_image.png"><meta property="article:published_time" content="2022-10-14T02:51:00.000Z"><meta property="article:modified_time" content="2022-11-17T10:06:12.000Z"><meta property="article:author" content="Humoooor"><meta property="article:tag" content="Operating System"><meta property="twitter:card" content="summary"><meta property="twitter:image:src" content="https://humoooor.cn/img/og_image.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://humoooor.cn/2022/10/14/Xv6/"},"headline":"Xv6","image":["https://humoooor.cn/img/og_image.png"],"datePublished":"2022-10-14T02:51:00.000Z","dateModified":"2022-11-17T10:06:12.000Z","author":{"@type":"Person","name":"Humoooor"},"publisher":{"@type":"Organization","name":"Humoooor's Blog","logo":{"@type":"ImageObject","url":"https://humoooor.cn/img/MyLogo.jpg"}},"description":"本文是笔者在学习 MIT 6.1810 2022 Fall 阅读 xv6 文档时所写，大部分是将原文翻译，笔者尽可能加入自己的理解并排版，应该会持续更新直到文档读完"}</script><link rel="canonical" href="https://humoooor.cn/2022/10/14/Xv6/"><link rel="icon" href="/img/MyLogo.jpg"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0/css/all.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;600&amp;family=Source+Code+Pro"><link rel="stylesheet" href="/css/default.css"><style>body>.footer,body>.navbar,body>.section{opacity:0}</style><!--!--><!--!--><!--!--><!--!--><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3.1.1/build/cookieconsent.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.10.0/dist/css/lightgallery.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.8.1/dist/css/justifiedGallery.min.css"><!--!--><!--!--><style>.pace{-webkit-pointer-events:none;pointer-events:none;-webkit-user-select:none;-moz-user-select:none;user-select:none}.pace-inactive{display:none}.pace .pace-progress{background:#3273dc;position:fixed;z-index:2000;top:0;right:100%;width:100%;height:2px}</style><script src="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/pace.min.js"></script><!--!--><!--!--><!-- hexo injector head_end start --><script>
+  (function () {
+      function switchTab() {
+          if (!location.hash) {
+            return;
+          }
+
+          const id = '#' + CSS.escape(location.hash.substring(1));
+          const $tabMenu = document.querySelector(`.tabs a[href="${id}"]`);
+          if (!$tabMenu) {
+            return;
+          }
+
+          const $tabMenuContainer = $tabMenu.parentElement.parentElement;
+          Array.from($tabMenuContainer.children).forEach($menu => $menu.classList.remove('is-active'));
+          Array.from($tabMenuContainer.querySelectorAll('a'))
+              .map($menu => document.getElementById($menu.getAttribute("href").substring(1)))
+              .forEach($content => $content.classList.add('is-hidden'));
+
+          if ($tabMenu) {
+              $tabMenu.parentElement.classList.add('is-active');
+          }
+          const $activeTab = document.querySelector(id);
+          if ($activeTab) {
+              $activeTab.classList.remove('is-hidden');
+          }
+      }
+      switchTab();
+      window.addEventListener('hashchange', switchTab, false);
+  })();
+  </script><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="Humoooor's Blog" type="application/atom+xml">
+</head><body class="is-3-column"><nav class="navbar navbar-main"><div class="container navbar-container"><div class="navbar-brand justify-content-center"><a class="navbar-item navbar-logo" href="/"><img src="/img/MyLogo.jpg" alt="Humoooor&#039;s Blog" height="28"></a></div><div class="navbar-menu"><div class="navbar-start"><a class="navbar-item" href="/">首页</a><a class="navbar-item" href="/archives">归档</a><a class="navbar-item" href="/categories">分类</a><a class="navbar-item" href="/tags">标签</a><a class="navbar-item" href="/friends">友链</a><a class="navbar-item" href="/about">关于</a></div><div class="navbar-end"><a class="navbar-item" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/humoooor"><i class="fab fa-github"></i></a><a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;"><i class="fas fa-list-ul"></i></a><a class="navbar-item search" title="搜索" href="javascript:;"><i class="fas fa-search"></i></a></div></div></div></nav><section class="section"><div class="container"><div class="columns"><div class="column order-2 column-main is-8-tablet is-8-desktop is-6-widescreen"><div class="card"><article class="card-content article" role="article"><div class="article-meta is-size-7 is-uppercase level is-mobile"><div class="level-left"><span class="level-item"><time dateTime="2022-10-14T02:51:00.000Z" title="2022/10/14 10:51:00">2022-10-14</time>发表</span><span class="level-item"><time dateTime="2022-11-17T10:06:12.000Z" title="2022/11/17 18:06:12">2022-11-17</time>更新</span><span class="level-item"><a class="link-muted" href="/categories/Course/">Course</a><span> / </span><a class="link-muted" href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></span><span class="level-item">1 小时读完 (大约10535个字)</span></div></div><h1 class="title is-3 is-size-4-mobile">Xv6</h1><div class="content"><p>本文是笔者在学习 MIT 6.1810 2022 Fall 阅读 xv6 文档时所写，大部分是将原文翻译，笔者尽可能加入自己的理解并排版，<del>应该会</del>持续更新直到文档读完</p>
+<span id="more"></span>
+
+<h2 id="Chapter-1-Operating-system-interfaces"><a href="#Chapter-1-Operating-system-interfaces" class="headerlink" title="Chapter 1 Operating system interfaces"></a>Chapter 1 Operating system interfaces</h2><p>xv6 实现的 Unix kernel 的服务和系统调用的子集</p>
+<p>在 user 目录下可查看程序源码</p>
+<table>
+<thead>
+<tr>
+<th align="center">System call</th>
+<th align="center">Description</th>
+</tr>
+</thead>
+<tbody><tr>
+<td align="center">int fork()</td>
+<td align="center">创建一个进程，返回子进程的 PID</td>
+</tr>
+<tr>
+<td align="center">int exit(int status)</td>
+<td align="center">结束当前进程，status 返回给 wait()</td>
+</tr>
+<tr>
+<td align="center">int wait(int *status)</td>
+<td align="center">等待一个子进程 exit，exit 的 status 在 *status中，返回子进程 PID，没有子进程返回 -1</td>
+</tr>
+<tr>
+<td align="center">int kill(int pid)</td>
+<td align="center">结束 PID 对应的进程，返回 0 或 -1</td>
+</tr>
+<tr>
+<td align="center">int getpid()</td>
+<td align="center">返回当前进程的 PID</td>
+</tr>
+<tr>
+<td align="center">int sleep(int n)</td>
+<td align="center">暂停 n 个时钟</td>
+</tr>
+<tr>
+<td align="center">int exec(char *file, char *argv[])</td>
+<td align="center">加载文件并使用参数执行，仅在错误时返回</td>
+</tr>
+<tr>
+<td align="center">char *sbrk(int n)</td>
+<td align="center">内存增加 n 字节，返回新内存的首地址</td>
+</tr>
+<tr>
+<td align="center">int open(char *file, int flags)</td>
+<td align="center">打开文件，flags 表示读写，返回一个 fd</td>
+</tr>
+<tr>
+<td align="center">int write(int fd, char *buf, int n)</td>
+<td align="center">从 buf 向 fd 写 n 字节，返回 n</td>
+</tr>
+<tr>
+<td align="center">int read(int fd, char *buf, int n)</td>
+<td align="center">从 fd 读 n 字节向 buf 写入，返回读的字节数</td>
+</tr>
+<tr>
+<td align="center">int close(int fd)</td>
+<td align="center">释放 fd</td>
+</tr>
+<tr>
+<td align="center">int dup(int fd)</td>
+<td align="center">返回与 fd 相同文件的一个新的 fd</td>
+</tr>
+<tr>
+<td align="center">int pipe(int p[])</td>
+<td align="center">创建一个管道，将读写 fd 放入 p[0] 和 p[1]</td>
+</tr>
+<tr>
+<td align="center">int chdir(char *dir)</td>
+<td align="center">改变当前目录</td>
+</tr>
+<tr>
+<td align="center">int mkdir(char *dir)</td>
+<td align="center">创建一个目录</td>
+</tr>
+<tr>
+<td align="center">int mknod(char *file, int, int)</td>
+<td align="center">创建一个设备文件</td>
+</tr>
+<tr>
+<td align="center">int fstat(int fd, struct stat *st)</td>
+<td align="center">读取文件信息放入 st</td>
+</tr>
+<tr>
+<td align="center">int stat(char *file, struct stat *st)</td>
+<td align="center">读取文件信息放入 st</td>
+</tr>
+<tr>
+<td align="center">int link(char *file1, char *file2)</td>
+<td align="center">为 file1 创建另一个名字 file2，即硬链接</td>
+</tr>
+<tr>
+<td align="center">int unlink(char *file)</td>
+<td align="center">删除一个文件</td>
+</tr>
+</tbody></table>
+<p>如果没有另外说明，系统调用返回 0 为正常，返回 -1 为错误</p>
+<h3 id="进程和内存"><a href="#进程和内存" class="headerlink" title="进程和内存"></a>进程和内存</h3><p>父子进程的内存关系</p>
+<h3 id="I-O-和文件描述符"><a href="#I-O-和文件描述符" class="headerlink" title="I/O 和文件描述符"></a>I/O 和文件描述符</h3><h3 id="管道"><a href="#管道" class="headerlink" title="管道"></a>管道</h3><p>p[0] 为读端，p[1] 为写端</p>
+<p>如果读端没有数据，read 会等待数据写入或等待指向写端的所有 fd 关闭，后者类似到文件结尾， read 会返回 0</p>
+<p>如果 read 到读端，会一直等待</p>
+<p>shell 可以用 | 符号实现管道</p>
+<p><code>grep fork sh.c | wc -l</code> 将 | 左边的结果通过管道流向右边</p>
+<p>多 | 可以创建进程树</p>
+<ol>
+<li>管道可以自己清理自己</li>
+<li>可以通过任意长度的数据流</li>
+<li>管道可以并行执行</li>
+</ol>
+<h3 id="文件系统"><a href="#文件系统" class="headerlink" title="文件系统"></a>文件系统</h3><p>#todo</p>
+<h3 id="真实世界"><a href="#真实世界" class="headerlink" title="真实世界"></a>真实世界</h3><p>Unix 系统调用接口通过 POSIX 标准进行标准化</p>
+<h2 id="Chapter-2-Operating-system-organization"><a href="#Chapter-2-Operating-system-organization" class="headerlink" title="Chapter 2 Operating system organization"></a>Chapter 2 Operating system organization</h2><p>三个要求</p>
+<ul>
+<li>多路复用</li>
+<li>隔离</li>
+<li>交互</li>
+</ul>
+<h3 id="抽象物理资源"><a href="#抽象物理资源" class="headerlink" title="抽象物理资源"></a>抽象物理资源</h3><p>每个应用程序直接访问物理资源</p>
+<ul>
+<li>效率高</li>
+<li>需要应用程序之间可信且没有错误</li>
+</ul>
+<p>因此需要进行<strong>强隔离</strong>，同时也会提供便利</p>
+<p>禁止应用程序直接访问敏感的硬件资源，将资源抽象为服务</p>
+<h3 id="用户-管理者模式，系统调用"><a href="#用户-管理者模式，系统调用" class="headerlink" title="用户/管理者模式，系统调用"></a>用户/管理者模式，系统调用</h3><p>强隔离需要应用程序和操作系统之间有硬边界</p>
+<p>CPU 能提供硬件支持</p>
+<p>RISC-V 的 CPU 有三种模式：机器模式、管理者（supervisor）模式、用户模式</p>
+<ul>
+<li>机器模式<ul>
+<li>执行的指令具有完全特权</li>
+<li>主要用具配置计算机，运行一段代码后会进入内核模式</li>
+</ul>
+</li>
+<li>管理者模式<ul>
+<li>CPU 可执行特权指令<ul>
+<li>启用、禁用终端</li>
+<li>读写页表寄存器</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>用户模式<ul>
+<li>CPU 不能执行特权指令<ul>
+<li>如果尝试执行，CPU 会切换到管理者模式，并且杀死应用程序</li>
+</ul>
+</li>
+<li>通过系统调用来调用内核函数<ul>
+<li>系统调用会跳转到内核指定的入口点</li>
+<li>CPU 从用户模式切换到管理者模式</li>
+<li>内核可以验证系统调用的参数是否合理，决定是否进行请求的操作</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>内核和管理者模式似乎有点分不清？</p>
+<p>笔者的理解：管理者模式是 RISC-V 的 CPU 定义的，相对于用户模式多了一些特权；内核是相对用户代码而言，运行在不同的模式下。模式对应着身份，内核和用户代码对应着一个实体</p>
+<h3 id="内核架构"><a href="#内核架构" class="headerlink" title="内核架构"></a>内核架构</h3><h4 id="宏内核设计"><a href="#宏内核设计" class="headerlink" title="宏内核设计"></a>宏内核设计</h4><p>缺点：操作系统不同部分之间的接口复杂，编写代码容易出错</p>
+<h4 id="微内核设计"><a href="#微内核设计" class="headerlink" title="微内核设计"></a>微内核设计</h4><p>最大限度地减少内核模式下运行的操作系统代码数量，在用户模式下执行操作系统的大部分功能</p>
+<h3 id="xv6-kernel-代码架构"><a href="#xv6-kernel-代码架构" class="headerlink" title="xv6 kernel 代码架构"></a>xv6 kernel 代码架构</h3><table>
+<thead>
+<tr>
+<th>文件</th>
+<th>描述</th>
+<th>文件</th>
+<th>描述</th>
+</tr>
+</thead>
+<tbody><tr>
+<td>bio.c</td>
+<td>文件系统的磁盘块缓冲</td>
+<td>proc.c</td>
+<td>进程和调度</td>
+</tr>
+<tr>
+<td>console.c</td>
+<td>连接到用户键盘和屏幕</td>
+<td>sleeplock.c</td>
+<td>放弃 CPU 的锁</td>
+</tr>
+<tr>
+<td>entry.S</td>
+<td>第一次启动的指令</td>
+<td>spinlock.c</td>
+<td>不放弃 CPU 的锁</td>
+</tr>
+<tr>
+<td>exec.c</td>
+<td><code>exec()</code> 系统调用</td>
+<td>start.c</td>
+<td>机器模式早期启动代码</td>
+</tr>
+<tr>
+<td>file.c</td>
+<td>文件描述符</td>
+<td>string.c</td>
+<td>C 字符串和字节数组代码库</td>
+</tr>
+<tr>
+<td>fs.c</td>
+<td>文件系统</td>
+<td>swtch.S</td>
+<td>线程切换</td>
+</tr>
+<tr>
+<td>kalloc.c</td>
+<td>物理页分配器</td>
+<td>syscall.c</td>
+<td>系统调用的调度</td>
+</tr>
+<tr>
+<td>kernelvec.S</td>
+<td>处理来自内核的陷阱，定时器中断</td>
+<td>sysfile.c</td>
+<td>文件相关的系统调用</td>
+</tr>
+<tr>
+<td>log.c</td>
+<td>文件系统日志记录和崩溃恢复</td>
+<td>sysproc.c</td>
+<td>进程相关的系统调用</td>
+</tr>
+<tr>
+<td>main.c</td>
+<td>启动阶段控制其他模块的初始化</td>
+<td>trampoline.S</td>
+<td>切换用户/内核模式的汇编</td>
+</tr>
+<tr>
+<td>pipe.c</td>
+<td>管道</td>
+<td>trap.c</td>
+<td>处理陷阱和中断并从中返回</td>
+</tr>
+<tr>
+<td>plic.c</td>
+<td>RISC-V 中断控制器</td>
+<td>uart.c</td>
+<td>串口控制台设备驱动</td>
+</tr>
+<tr>
+<td>printf.c</td>
+<td>格式化输出到控制台</td>
+<td>virtio_disk.c</td>
+<td>磁盘设备驱动</td>
+</tr>
+<tr>
+<td>vm.c</td>
+<td>管理页表和地址空间</td>
+<td>defs.h</td>
+<td>模块间接口的定义</td>
+</tr>
+</tbody></table>
+<h3 id="进程"><a href="#进程" class="headerlink" title="进程"></a>进程</h3><h4 id="地址空间"><a href="#地址空间" class="headerlink" title="地址空间"></a>地址空间</h4><p>每个进程有一个单独的页表，定义了进程的地址空间</p>
+<ul>
+<li><p>有许多因素限制了进程地址空间的最大值</p>
+<ul>
+<li>RISC-V 的指针为 64 位</li>
+<li>在页表中查找虚拟地址时，硬件仅使用低 39 位</li>
+<li>xv6 只使用 38 位 #why</li>
+<li>因此最大地址位 2^38^ - 1 = 0x3fffffffff，即 MAXVA（在 <code>kernel/risc.h</code> 中定义）、</li>
+</ul>
+</li>
+<li><p>在地址空间的顶部保留了一页用作 trampoline（跳板、蹦床），一页用作映射进程的 trapframe（陷阱帧），xv6 用这两个页面进入和退出内核</p>
+<ul>
+<li>trampoline 包含进入和退出内核的代码</li>
+<li>trapframe 映射用于保存和恢复用户进程的状态</li>
+</ul>
+</li>
+</ul>
+<h4 id="进程状态"><a href="#进程状态" class="headerlink" title="进程状态"></a>进程状态</h4><p>xv6 内核维护每个进程的状态，存放到 proc 结构体中（<code>kernel/proc.h</code>）</p>
+<p>最重要的部分是页表、内核栈、运行状态</p>
+<p><code>p-&gt;state</code> 表示进程状态（分配、准备运行、等待IO、正在退出）</p>
+<p><code>p-&gt;pagetable</code> 保存页表，还用作存储进程内存的物理页地址的记录</p>
+<h4 id="栈空间"><a href="#栈空间" class="headerlink" title="栈空间"></a>栈空间</h4><ul>
+<li>每个进程有两个栈：用户栈和内核栈（p-&gt;kstack）</li>
+<li>在执行用户指令时，只有用户栈在使用，内核栈为空</li>
+<li>当进入内核模式（系统调用或中断），内核代码会在内核栈上执行，用户栈不变</li>
+<li>内核栈是独立的，即使进程破坏了用户栈，内核也可以执行</li>
+</ul>
+<h3 id="启动-xv6，第一个进程和系统调用的代码"><a href="#启动-xv6，第一个进程和系统调用的代码" class="headerlink" title="启动 xv6，第一个进程和系统调用的代码"></a>启动 xv6，第一个进程和系统调用的代码</h3><ol>
+<li>RISC-V 开机时，会自行初始化，运行存储在 ROM 中的引导加载程序</li>
+<li>引导加载程序将 xv6 内核加载到内存 0x80000000 中，因为 0 ~ 0x80000000 之间包含 IO 设备（RISC-V 在分页硬件禁用和虚拟地址直接映射到物理地址条件下开始）</li>
+<li>在机器模式下，从 _entry 开始执行 xv6<ul>
+<li>_entry 的指令设置一个栈，以便 xv6 运行 C 代码</li>
+<li>xv6 在 <code>kernel/start.c</code> 中声明一个初始栈 stack0 的空间</li>
+<li>_entry 的代码将栈顶寄存器 sp 加载到 stack0 的顶部 stack0+0x1000</li>
+<li>接下来调用 <code>kernel/start.c</code> 中的代码</li>
+</ul>
+</li>
+<li>start 函数<ul>
+<li>先在机器模式执行配置代码<ul>
+<li>将 main 的地址写入 mepc 寄存器作为 mret 返回地址</li>
+<li>将所有中断和异常委托给内核模式</li>
+<li>将 0 写入 satp 页表寄存器，禁用内核模式下的虚拟内存转换</li>
+<li>对时钟芯片编程来生成计时器中断</li>
+</ul>
+</li>
+<li>然后通过 mret 指令切换到内核模式，进入 main 函数<ul>
+<li>mret 常用于在内核模式调用进入机器模式后返回到内核模式</li>
+<li>start 会将前一个模式设置为内核模式，以便符合 mret 的条件</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>main 函数<ul>
+<li>初始化控制台</li>
+<li>初始化物理页分配器</li>
+<li>创建内核页表</li>
+<li>加载启动页面</li>
+<li>初始化进程表</li>
+<li>根据内核位置设置代码（设置 ecall 的位置？）</li>
+<li>初始化中断控制 PLIC</li>
+<li>通过中断请求 PLIC 访问设备</li>
+<li>初始化 buffer 缓存</li>
+<li>初始化 inode 缓存</li>
+<li>初始化文件系统</li>
+<li>初始化磁盘</li>
+<li>进入 userinit 函数</li>
+</ul>
+</li>
+<li>userinit 函数<ul>
+<li>创建第一个进程</li>
+<li>执行用 RISC-V 编写的小程序，使用第一个系统调用</li>
+<li>在 <code>user/initcode.S</code> 中把 SYS_exec 系统调用号传给 a7 寄存器，然后调用 ecall 进入内核</li>
+</ul>
+</li>
+</ol>
+<h3 id="安全模型"><a href="#安全模型" class="headerlink" title="安全模型"></a>安全模型</h3><p>#todo</p>
+<h3 id="真实世界-1"><a href="#真实世界-1" class="headerlink" title="真实世界"></a>真实世界</h3><p>大多数操作系统采用了进程的概念，但是现代操作系统的进程支持多个线程，以允许单个进程利用多个 CPU，潜在地更改了接口（如 Linux 的 clone，fork 的一种变体），来控制线程共享的各个方面</p>
+<h2 id="Chapter-3-Page-tables"><a href="#Chapter-3-Page-tables" class="headerlink" title="Chapter 3 Page tables"></a>Chapter 3 Page tables</h2><p>#todo </p>
+<h3 id="分页硬件"><a href="#分页硬件" class="headerlink" title="分页硬件"></a>分页硬件</h3><p>#todo</p>
+<h3 id="内核地址空间"><a href="#内核地址空间" class="headerlink" title="内核地址空间"></a>内核地址空间</h3><p>#todo</p>
+<h3 id="代码：创建一个地址空间"><a href="#代码：创建一个地址空间" class="headerlink" title="代码：创建一个地址空间"></a>代码：创建一个地址空间</h3><p>大多数处理地址空间和页表的代码在 <code>kernel/vm.c</code> 中</p>
+<p>数据结构 pagetable_t，是指向 RISC-V 根页表的指针 <code>typedef uint64 *pagetable_t</code>，它可以是内核或每个进程的页表</p>
+<ul>
+<li>中心函数是 walk 和 mappages<ul>
+<li>walk：从页表中查找虚拟地址对应的 PTE</li>
+<li>mappages：为新映射安装 PTE</li>
+</ul>
+</li>
+<li>kvm 开头的函数操作内核页表</li>
+<li>uvm 开头的函数操作用户页表</li>
+<li><code>copyin</code> 和 <code>copyout</code> 用于用户与内核之间传输数据</li>
+</ul>
+<h4 id="系统启动"><a href="#系统启动" class="headerlink" title="系统启动"></a>系统启动</h4><p>一开始，main 调用 <code>kvminit</code> 来使用 <code>kvmmake</code> 创建内核页表，在此之前，地址直接映射到物理内存</p>
+<p>然后调用 <code>kvminithart</code> 来安装内核页表，将根页表的物理地址写入 satp 寄存器，在此之后 CPU 会使用内核页表转换地址</p>
+<p><strong>kvmmake</strong> </p>
+<ul>
+<li>首先分配一页物理内存来保存根页表</li>
+<li>然后调用 <code>kvmmap</code> 来安装内核需要的 PTE<ul>
+<li>包括内核的指令和数据，最高到 PHYSTOP 的物理内存，设备的内存范围</li>
+</ul>
+</li>
+<li>然后调用 <code>proc_mapstacks</code> 给每个进程分配一个内核栈<ul>
+<li>它调用 kvmmap 把每个栈映射到 KSTACK 生成的虚拟地址，留出了保护页的空间</li>
+</ul>
+</li>
+</ul>
+<p><strong>kvmmap</strong></p>
+<ul>
+<li>调用 <code>mappages</code> 安装 PTE</li>
+</ul>
+<p><strong>mappages</strong></p>
+<ul>
+<li>它对每个虚拟地址先调用 walk 查找对应的 PTE 地址</li>
+<li>然后初始化 PTE 保存对应的 PPN 和 权限标志位</li>
+</ul>
+<p><strong>walk</strong></p>
+<ul>
+<li>它对三级页表进行查询对应的 PTE</li>
+<li>若 PTE 无效且设置了 alloc 参数，walk 会分配一个新的页面，并把物理地址放入 PTE</li>
+<li>最后返回第三级页表的 PTE 地址</li>
+</ul>
+<h3 id="物理内存分配"><a href="#物理内存分配" class="headerlink" title="物理内存分配"></a>物理内存分配</h3><p>xv6 在内核结尾与 PHSYTOP 之间分配运行时内存，一次分配和释放 4KB</p>
+<p>xv6 追踪哪些页面是 freed，通过建立一个链表</p>
+<p>分配包括从链表中移除，释放包括将 freed 页加入从链表中</p>
+<h3 id="代码：物理内存分配器"><a href="#代码：物理内存分配器" class="headerlink" title="代码：物理内存分配器"></a>代码：物理内存分配器</h3><p>分配器位于 kernel/kalloc.c 中</p>
+<p>数据结构是一个 free 链表，每个元素是 <code>struct run</code>，链表由一个 spin lock 保护，锁调用 <code>acquire</code> 和 <code>release</code>，链表和锁被包装在 kmem 结构体中</p>
+<figure class="highlight c"><figcaption><span>kernel/kalloc.c</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> &#123;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">spinlock</span> <span class="title">lock</span>;</span></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> <span class="title">run</span> *<span class="title">freelist</span>;</span></span><br><span class="line">&#125; kmem;</span><br></pre></td></tr></table></figure>
+
+<p>xv6 应该通过解析硬件的配置信息来决定有多少物理内存可用</p>
+<p>main 函数调用 <code>kinit</code> 来初始化分配器</p>
+<p><strong>kinit</strong></p>
+<p>初始化 free 链表来保存 free memory 的每一页（kernel 末尾与 PHSYTOP 之间的内存空间）</p>
+<p><code>kinit</code> 调用 <code>freerange</code> 来对每一页调用 kfree 向 free 链表添加内存</p>
+<p><code>freerange</code> 使用 PGROUNDUP 确保物理地址对齐（类似向上取整）</p>
+<p><code>kfree</code> 会将释放的页面所有值设为 1，然后使用头插法将页面首地址加入 free 链表</p>
+<h3 id="进程地址空间"><a href="#进程地址空间" class="headerlink" title="进程地址空间"></a>进程地址空间</h3><p>每个进程有一个单独的页表<br>| Address      | section    | Permission |<br>| ———— | ———- | ———- |<br>| MAXVA        | trapline   | RX–       |<br>|              | trapframe  | R-W-       |<br>|              | unused     |            |<br>|              | heap       | R-WU       |<br>|              | stack      | R-WU       |<br>|              | guard page |            |<br>|              | data       | R-WU       |<br>| Page aligned | unused     |            |<br>| 0            | text       | R-XU       |</p>
+<p>trampoline 和 trapframe 映射在高地址，用户模式不可访问</p>
+<p>trampoline：在调用 ecall 时会跳转到这里</p>
+<p>trapframe：在调用 ecall 时，用户进程的通用寄存器会保存在这里</p>
+<h3 id="代码：sbrk"><a href="#代码：sbrk" class="headerlink" title="代码：sbrk"></a>代码：sbrk</h3><p>系统调用 sbrk 用于进程增减内存大小，由 growproc 实现</p>
+<p>growproc 根据 n 的正负，调用 uvmalloc 或 uvmdealloc</p>
+<p>uvmalloc 调用 kalloc 分配物理内存，然后调用 mappages 向用户页表添加 PTE</p>
+<p>uvmdealloc 调用 uvmunmap，uvmunmap 使用 walk 找到对应的 PTE 和 kfree 释放物理内存</p>
+<h3 id="代码：exec"><a href="#代码：exec" class="headerlink" title="代码：exec"></a>代码：exec</h3><p>exec 使用 namei 打开二进制文件，然后读取 ELF 头</p>
+<p>一个 ELF 文件包含一个 ELF 头（struct elfhdr），一系列程序 section 头（struct proghdr），每个 struct proghdr 描述了程序必须加载到内存中的 section，xv6 程序有两个，一个指令，一个是数据</p>
+<ul>
+<li>第一步是检查文件是否是 ELF 文件，它从 4 字节的魔术数字开始（0x7F，’E’，’L’，’F’，或者 ELF_MAGIC）</li>
+<li>使用 proc_pagetable 分配一个没有用户映射的新页表，用 uvmalloc 给每个 ELF 段分配内存，用 loadseg 加载每个段到内存中，loadseg 使用 walkaddr 找到物理地址写入每个段。使用 readi 读取每个段</li>
+<li>分配并初始化一页用户栈，将参数字符串复制到栈顶，在 ustack 记录字符串指针，ustack 前三个是 fake 返回程序计数器，argc 和 argv</li>
+<li>exec 会在栈页的下面放一个不可访问的页<ul>
+<li>在准备新的内存镜像时，如果检测到一个错误（如无效的程序段），会跳转到 bad 标签，释放新的镜像，返回 -1。一旦镜像完成，exec 提交新的页表，释放旧的</li>
+</ul>
+</li>
+<li>exec 从文件指定的地址将数据加载到内存中，因此 exec 是有风险的，需要执行很多检查</li>
+</ul>
+<h3 id="Real-world"><a href="#Real-world" class="headerlink" title="Real world"></a>Real world</h3><p>真正的内存分配器需要处理小分配和大分配</p>
+<h2 id="Chapter-4-Traps-and-system-calls"><a href="#Chapter-4-Traps-and-system-calls" class="headerlink" title="Chapter 4 Traps and system calls"></a>Chapter 4 Traps and system calls</h2><p><em>trap</em>（陷阱）是让CPU 搁置普通指令的执行，并将控制权转移到处理该事件的特殊代码</p>
+<ul>
+<li>系统调用</li>
+<li>异常<ul>
+<li>除以 0 或使用无效的虚拟地址等</li>
+</ul>
+</li>
+<li>中断<ul>
+<li>设备发出信号，如磁盘完成读写请求时</li>
+</ul>
+</li>
+</ul>
+<p>通常，trap 发生时执行的代码不久后都需要恢复，代码并不需要意识到发生了任何特殊情况</p>
+<ul>
+<li>异常处理<ol>
+<li>trap 强制将控制权转移给内核</li>
+<li>内核保存寄存器和其他状态</li>
+<li>内核执行处理代码</li>
+<li>内核恢复保存的寄存器和状态并从陷阱中返回</li>
+<li>原始代码从它停止的地方恢复</li>
+</ol>
+</li>
+</ul>
+<p>Xv6 在内核中处理所有 trap，trap 不会传递给用户代码</p>
+<p><strong>隔离</strong>要求只有内核可以使用硬件设备，且内核是一种方便的机制，可以在多个进程之间共享设备，不互相干扰，这对于异常也有意义，xv6 通过杀死违规程序来处理用户空间的所有异常</p>
+<p>Xv6 处理 trap 有四个阶段</p>
+<ol>
+<li>RISC-V CPU 进行硬件操作</li>
+<li>一些为内核 C 代码做好准备的汇编指令</li>
+<li>决定如何处理 trap 的 C 函数</li>
+<li>系统调用或设备驱动程序服务例程</li>
+</ol>
+<p>处理 trap 的代码（汇编或 C）被称为 <em>handler</em></p>
+<p>handler 的第一步通常用汇编语言编写，称为 <em>vector</em></p>
+<h3 id="RISC-V-trap-机制"><a href="#RISC-V-trap-机制" class="headerlink" title="RISC-V trap 机制"></a>RISC-V trap 机制</h3><h4 id="寄存器"><a href="#寄存器" class="headerlink" title="寄存器"></a>寄存器</h4><p>控制寄存器：内核可读写，用于告诉 CPU 怎么处理 trap</p>
+<ul>
+<li>stvec：保存内核处理 trap 的地址，发生 trap 时会跳转到该地址<ul>
+<li>Supervisor Trap Vector</li>
+<li>用户模式下会指向内核代码的 <code>usertrap</code></li>
+<li>内核模式下会指向内核代码的 <code>kerneltrap</code></li>
+</ul>
+</li>
+<li>sepc：发生 trap 时保存当前的 pc，在使用 sret 指令时，会跳转到 sepc 指向的地址<ul>
+<li>Supervisor Exception Program Counter</li>
+<li>sret：从 trap 返回</li>
+<li>内核可控制 sepc 让 sret 返回到适当的位置</li>
+</ul>
+</li>
+<li>scause：描述 trap 类型<ul>
+<li>Supervisor Trap Cause</li>
+<li>8 表示系统调用</li>
+<li>其他表示错误或者中断</li>
+</ul>
+</li>
+<li>sscatch：辅助作用，防止在保存用户寄存器前将其覆盖<ul>
+<li>一般用来保存 a0</li>
+<li><del>在 xv6 的 2020 版本用来保存 trapframe 地址</del></li>
+</ul>
+</li>
+<li>sstatus：以 bitmap 形式保存一些控制信息<ul>
+<li>Supervisor Status</li>
+<li>SPP：表示 trap 来自用户模式（0）还是管理者模式（1），并且用来告诉 sret 返回到哪个模式</li>
+<li>SIE：表示是否允许设备中断，若为 0 则 RISC-V 会推迟设备中断</li>
+</ul>
+</li>
+</ul>
+<p>在机器模式下有一组类似的控制寄存器，xv6 只在定时器中断的情况下使用</p>
+<h4 id="处理-trap-前"><a href="#处理-trap-前" class="headerlink" title="处理 trap 前"></a>处理 trap 前</h4><p>下面是除 定时器中断 外的 trap</p>
+<ol>
+<li>将 sstatus 的 SIE 位 置零<ul>
+<li>如果是设备中断，不会继续下面的操作</li>
+</ul>
+</li>
+<li>将 pc 复制给 sepc</li>
+<li>保存当前模式到 sstatus 的 SSP </li>
+<li>设置 scause 表示 trap 原因</li>
+<li>设置为管理者模式</li>
+<li>将 stvec 复制给 pc</li>
+<li>开始执行新的 pc 指向的指令</li>
+</ol>
+<p><strong>注意</strong>：此时没有转换为内核页表，没有转换为内核栈，也没有保存除 pc 外的任何寄存器，这些需要由内核来实现</p>
+<p>原因：这样能提供给内核更好的灵活性，例如在内核中发生 trap 并不需要转换页表，可以提高处理 trap 的性能</p>
+<h4 id="相关的汇编指令"><a href="#相关的汇编指令" class="headerlink" title="相关的汇编指令"></a>相关的汇编指令</h4><ul>
+<li>ecall<ul>
+<li>environment call</li>
+<li>系统调用，一种 trap</li>
+</ul>
+</li>
+<li>sret<ul>
+<li>Supervisor Return</li>
+<li>将模式从管理者模式更改为指定的模式（sstatus 的 SPP 位）</li>
+<li>将 sepc 寄存器复制给 pc 寄存器</li>
+<li>启用设备中断（将 sstatus 的 SIE 位设为 1）</li>
+</ul>
+</li>
+<li>csrw<ul>
+<li>写入控制寄存器 <code>csrw sscratch, a0</code></li>
+</ul>
+</li>
+<li>csrr<ul>
+<li>读取控制寄存器 <code>csrr t0, sscratch</code></li>
+</ul>
+</li>
+</ul>
+<h3 id="用户-trap"><a href="#用户-trap" class="headerlink" title="用户 trap"></a>用户 trap</h3><p>来自用户空间的 trap 的处理流程</p>
+<ol>
+<li><code>uservec</code>（kernel/trampoline.S）</li>
+<li><code>usertrap</code>（kernel/trap.c）</li>
+<li><code>usertrapret</code>（kernel/trap.c）</li>
+<li><code>userret</code>（kernel/trapline.S）</li>
+</ol>
+<h4 id="trampoline"><a href="#trampoline" class="headerlink" title="trampoline"></a>trampoline</h4><p>由于RISC-V 硬件在发生 trap 时不会转换页表，这意味着 stvec 保存的地址（处理 trap 的地址）必须在用户页表中存在有效映射，并且在转换成内核页表后，必须在内核页表中也存在有效映射</p>
+<p>Xv6 使用了一个 <em>trampoline</em> 页表来解决上面的限制条件</p>
+<p>trampoline 页面包含 stvec 指向的 <code>uservec</code> 程序和用于返回到用户代码的 <code>userret</code> 程序</p>
+<p>trampoline 在内核每个进程的页表中都映射到了 TRAMPOLINE（0x3ffffff000）地址上，位于虚拟地址顶部，它只允许管理者模式执行</p>
+<h4 id="trapframe"><a href="#trapframe" class="headerlink" title="trapframe"></a>trapframe</h4><p>通用寄存器内容会保存到一个 trapframe 结构体，它通常在用户页表中映射到与 trampoline 相邻的位置（0x3fffffe000），且也只允许管理者模式访问</p>
+<p>它的物理地址保存在 proc 结构体的 trapframe 成员变量中，以便内核能通过内核页表直接访问它</p>
+<figure class="highlight c"><figcaption><span>kernel/proc.h</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> <span class="title">trapframe</span> &#123;</span></span><br><span class="line">  <span class="comment">/*   0 */</span> uint64 kernel_satp;   <span class="comment">// kernel page table</span></span><br><span class="line">  <span class="comment">/*   8 */</span> uint64 kernel_sp;     <span class="comment">// top of process&#x27;s kernel stack</span></span><br><span class="line">  <span class="comment">/*  16 */</span> uint64 kernel_trap;   <span class="comment">// usertrap()</span></span><br><span class="line">  <span class="comment">/*  24 */</span> uint64 epc;           <span class="comment">// saved user program counter</span></span><br><span class="line">  <span class="comment">/*  32 */</span> uint64 kernel_hartid; <span class="comment">// saved kernel tp</span></span><br><span class="line">  ...</span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>kernel_satp<ul>
+<li>保存 kernel 页表地址</li>
+</ul>
+</li>
+<li>kernel_sp<ul>
+<li>保存进程的内核栈顶地址</li>
+</ul>
+</li>
+<li>kernel_trap<ul>
+<li>保存内核代码中的 <code>usertrap</code> 位置</li>
+</ul>
+</li>
+<li>epc<ul>
+<li>保存用户的 pc</li>
+<li>在 <code>usertrap()</code> 中会将 sepc 寄存器内容保存到这里</li>
+<li>因为可能会跳转到另一个用户进程去执行，sepc 寄存器可能会被更改</li>
+</ul>
+</li>
+<li>kernel_hartid<ul>
+<li>CPU 核心 id，表示该进程在哪个 CPU 核心运行，从 0 开始</li>
+</ul>
+</li>
+<li>剩下的是通用寄存器</li>
+</ul>
+<h4 id="uservec"><a href="#uservec" class="headerlink" title="uservec"></a>uservec</h4><p><code>uservec</code> 代码位于 kernel/trampoline.S 中</p>
+<p>它的作用是保存用户代码的通用寄存器，切换内核栈、内核页表等，跳转到内核中处理 trap 的位置 <code>usertrap</code>（kernel/proc.c）</p>
+<h4 id="usertrap"><a href="#usertrap" class="headerlink" title="usertrap"></a>usertrap</h4><p><code>usertrap</code> 代码位于 kernel/trap.c 中</p>
+<p>它的作用是确定 trap 的原因，处理它并返回</p>
+<ol>
+<li>首先将 stvec 更改为 <code>kernelvec</code>（kernel/kenelvec.S），这样在内核中发生 trap 时，会进入 <code>kerneltrap</code> 进行处理，而不会进入 <code>usertrap</code></li>
+<li>将 sepc 保存到 trapframe 中，因为 trap 有可能时计时器中断，转换到另一个进程去执行，会将 sepc 覆盖</li>
+<li>根据 trap 种类<ul>
+<li>系统调用<ul>
+<li>p-&gt;trapframe-&gt;epc +=4 这样在回到用户进程时，会执行下一条指令，而不是再执行 ecall</li>
+<li>启用设备中断</li>
+<li>调用 <code>syscall</code> 来执行对应的系统调用</li>
+</ul>
+</li>
+<li>设备中断<ul>
+<li>调用 <code>devintr</code> 处理</li>
+</ul>
+</li>
+<li>异常<ul>
+<li>杀死出错的进程</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>检查进程是否被杀死，若杀死则调用 <code>exit</code> 退出</li>
+<li>检查是否是计时器中断，若是则调用 <code>yield</code> 放弃 CPU</li>
+</ol>
+<h4 id="usertrapret"><a href="#usertrapret" class="headerlink" title="usertrapret"></a>usertrapret</h4><p><code>usertrapret</code> 代码位于 kernel/trap.c 中</p>
+<p>它的作用是设置 trapframe 和控制寄存器</p>
+<ol>
+<li>将 stvec 更改为 <code>uservec</code>（kernel/trampoline.S）</li>
+<li>设置 trapframe 中 <code>uservec</code> 需要使用的字段</li>
+<li>设置 sstatus</li>
+<li>设置 sepc 为之前保存的 pc</li>
+<li>将用户页表放入 a0 传递给 <code>userret</code></li>
+</ol>
+<h4 id="userret"><a href="#userret" class="headerlink" title="userret"></a>userret</h4><p><code>userret</code> 代码位于 kernel/trampoline.S 中</p>
+<p>它的作用是切换为用户页表，从 trapframe 中恢复通用寄存器，调用 sret 跳转 sepc 指向的地址，返回到用户模式</p>
+<h3 id="代码：调用系统调用"><a href="#代码：调用系统调用" class="headerlink" title="代码：调用系统调用"></a>代码：调用系统调用</h3><p>user/initcode.S 将 exec 的参数放在 a0 和 a1 寄存器中，把系统调用号放在 a7 中</p>
+<p>ecall 指令进入内核，执行 <code>uservec</code>、<code>usertrap</code> 和 <code>syscall</code> 执行</p>
+<p><code>syscall</code> 在 trapframe 中检索 a7 保存的系统调用号，并用它索引到 syscall 中</p>
+<p>当 <code>syscall</code> 返回时，将返回值记录到 p-&gt;trapframe-&gt;a0 中</p>
+<p>然后用户空间的 <code>exec</code> 函数会将该值返回</p>
+<p>系统调用号无效，会打印错误然后返回 -1</p>
+<h3 id="代码：系统调用参数"><a href="#代码：系统调用参数" class="headerlink" title="代码：系统调用参数"></a>代码：系统调用参数</h3><p>根据 RISC-V C 调用约定，系统调用参数存放在寄存器中</p>
+<p>内核陷阱代码将寄存器的值保存到当前进程的 trapframe 中，这样内核可以找到它们</p>
+<p>内核函数 <code>argint</code>，<code>argaddr</code>，<code>argfd</code> 从 trapframe 中检索系统调用参数作为整数、指针或文件描述符，它们都调用 <code>argraw</code>  从用户寄存器中检索</p>
+<p>指针作为参数有两个挑战</p>
+<ul>
+<li>用户程序可能是错误或恶意的，传递一个无效的指针或欺骗内核用来访问内核内存的指针</li>
+<li>xv6 内核页表映射与用户页表映射并不相同，不能用普通指令从提供的地址加载或存储数据</li>
+</ul>
+<p>内核实现了安全的传输数据的函数</p>
+<ul>
+<li>文件系统调用如 exec 用 <code>fetchstr</code>（kernel/syscall.c）从用户空间检索字符串文件名参数</li>
+<li><code>fetchstr</code> 调用 <code>copyinstr</code>（kernel/vm.c）来完成</li>
+<li><code>copyinstr</code>  从用户页表的虚拟地址 p-&gt;pagetable-&gt;srcva 复制 max 字节到 dst 中<ul>
+<li>因为 pagetable 不是当前的页表，<code>copyinstr</code> 使用 walkaddr（它会调用 walk） 在 pagetable 中查找 srcva，从而产生物理地址 pa0</li>
+<li>内核将每个物理内存地址映射到对应的内核虚拟地址，因此 <code>copyinstr</code> 能直接从 pa0 复制字符串字节到 dst</li>
+<li><code>walkaddr</code>（kernel/vm.c）会检查用户提供的虚拟地址是否是进程地址空间的一部分，因此程序不能欺骗内核来读取其他内存</li>
+</ul>
+</li>
+<li>类似的功能 copyout 从内核读取数据到用户提供的地址</li>
+</ul>
+<h3 id="内核-trap"><a href="#内核-trap" class="headerlink" title="内核 trap"></a>内核 trap</h3><p>CPU 在执行内核时，stvec 会指向 <code>kernelvec</code>（kernel/kernelvec.S）</p>
+<p>如果发生 trap 会跳转到 <code>kernelvec</code> 来处理 trap</p>
+<p><code>kernelvec</code> 将通用寄存器保存在中断的内核线程的栈中，trap 有可能导致切换线程，这样不会导致混乱</p>
+<p><code>kernelvec</code> 保存完寄存器后调用 <code>kerneltrap</code>（kernel/trap.c）</p>
+<p><code>kerneltrap</code> 会保存控制寄存器并处理两种 trap</p>
+<ul>
+<li>设备中断<ul>
+<li>使用 <code>devintr</code> 检查设备中断</li>
+<li>如果是计时器中断，且进程的内核线程正在运行，<code>kerneltrep</code> 会调用 <code>yield</code> 让其他线程有机会运行</li>
+</ul>
+</li>
+<li>异常<ul>
+<li>内核会调用 panic 然后停止运行</li>
+</ul>
+</li>
+</ul>
+<p>当 <code>kerneltrap</code> 任务完成后，它需要返回到 trap 中断的代码，会恢复保存的控制寄存器，然后返回到 <code>kernelvec</code></p>
+<p><code>kernelvec</code> 恢复保存的通用寄存器，然后执行 sret，返回中断的内核代码</p>
+<p>在内核开始执行时有一段时间 stvec 仍然指向 <code>uservec</code>，这段时间内不允许发生设备中断</p>
+<p>RISC-V 会在发生 trap 时关闭设备中断，让内核有时间设置 stvec 为 <code>kernelvec</code></p>
+<h3 id="页面错误异常"><a href="#页面错误异常" class="headerlink" title="页面错误异常"></a>页面错误异常</h3><p>CPU 会发出页面错误异常，当：</p>
+<ul>
+<li>虚拟地址在页表中没有映射</li>
+<li>PTE 的 PTE_V 标志位为 0</li>
+<li>PTE 的权限位阻止正在尝试的操作</li>
+</ul>
+<p>RISC-V 区分三种页面错误：</p>
+<ul>
+<li>load page faults</li>
+<li>store page faults</li>
+<li>instruction page faults<ul>
+<li>PC 寄存器的地址指向的指令无法翻译</li>
+</ul>
+</li>
+</ul>
+<p>xv6 的异常处理很单一：如果在用户空间发生异常，内核会杀死出错的进程，如果在内核中发生异常，内核会发生 panic</p>
+<p>真实的操作系统会做很多有趣的处理</p>
+<ul>
+<li>COW fork</li>
+<li>Lazy allocation</li>
+<li>Demand Paging</li>
+<li>Paging to disk</li>
+<li>Extending stacks</li>
+<li>Memory-mapped files</li>
+</ul>
+<h4 id="COW-fork"><a href="#COW-fork" class="headerlink" title="COW fork"></a>COW fork</h4><p>许多内核使用页面错误来实现 COW，加快 fork，它不需要复制内存，特别是在 fork 后 exec 时很高效</p>
+<p>在 xv6 中，<code>fork</code> 会让子进程的初始内存与父进程的相同，它调用 <code>uvmcopy</code> 给子进程分配物理空间并复制父进程的内存给它</p>
+<p>如果父子进程共享父进程的物理内存会更加高效</p>
+<ul>
+<li>COW fork 的简单计划<ol>
+<li>父子进程一开始共享所有的物理页，且设为只读</li>
+<li>当某个进程要写入内存时，CPU 抛出页面错误异常</li>
+<li>内核的 trap 处理程序分配一个新的物理页面，并将原页面的内容复制过去</li>
+<li>将出错进程的页表中相关 PTE 指向副本，允许读写，然后重新执行指令</li>
+</ol>
+</li>
+</ul>
+<p>COW 需要一个记录，来决定物理页面何时释放，它可能有多个进程在使用；当发生 store 页面错误时，如果该物理页面只有出错进程指向它，不需要再复制，直接使用</p>
+<h4 id="Lazy-allocation"><a href="#Lazy-allocation" class="headerlink" title="Lazy allocation"></a>Lazy allocation</h4><p>用户程序调用 <code>sbrk</code> 申请更多内存时，内核先增加它的 size，但不申请物理内存，不创建映射</p>
+<p>当用户程序访问新地址时，会发生页面错误，内核再申请一页物理内存并在页表添加映射</p>
+<ol>
+<li>kalloc</li>
+<li>初始化页面</li>
+<li>页面映射</li>
+<li>更新页表</li>
+<li>重新执行指令</li>
+</ol>
+<p>如果用户程序申请了很大内存，但是不去使用，Lazy allocation 会提高效率</p>
+<p>lazy allocation 可以让空间成本随时间分摊，但是会导致页面错误的额外开销</p>
+<p>内核可以通过分配一批连续页面，对页面错误的 trap 处理程序进行特殊化来减小开销</p>
+<h4 id="Demand-paging"><a href="#Demand-paging" class="headerlink" title="Demand paging"></a>Demand paging</h4><p>在 <code>exec</code> 中，xv6 会将程序的所有 text 和 data 直接加载到内存中，由于程序可能会很大，从磁盘中读取开销昂贵</p>
+<ol>
+<li>现代内核为用户地址空间创建页表，但是 PTE 标记为无效</li>
+<li>当出现页面错误时，内核将页面的内容从磁盘中读取，添加映射</li>
+</ol>
+<h4 id="Paging-to-disk"><a href="#Paging-to-disk" class="headerlink" title="Paging to disk"></a>Paging to disk</h4><p>一个进程可能需要的内存多于计算机的 RAM，操作系统可能会实现 paging to disk</p>
+<p>内核会将用户页面的一部分放在内存中，其余的页面保存到磁盘中的 paging area 区域，并将对应的 PTE 标记为无效</p>
+<p>当进程尝试访问磁盘上的页面，会发生页面错误，内核会将该页面从硬盘中读取出来</p>
+<p><strong>如果没有多余的内存</strong></p>
+<p>内核先将一个页面驱逐，保存到磁盘中，将对应的 PTE 标记为无效，但是驱逐的花销是昂贵的</p>
+<h3 id="真实世界-2"><a href="#真实世界-2" class="headerlink" title="真实世界"></a>真实世界</h3><p>如果将内核内存映射到每个进程的用户页表中，可以消除对页表切换的需求</p>
+<p>生产环境的操作系统实现了 COW、Lazy allocation、Demand paging、Paging to disk、Memory-mapped files 等等</p>
+<p>xv6 没有这样做，如果用完内存，</p>
+<h2 id="Chapter-5-Interrupts-and-device-drivers"><a href="#Chapter-5-Interrupts-and-device-drivers" class="headerlink" title="Chapter 5 Interrupts and device drivers"></a>Chapter 5 Interrupts and device drivers</h2><ul>
+<li><p>驱动程序（driver）</p>
+<ul>
+<li>操作系统中管理特定设备的代码它配置硬件，告诉设备执行操作，处理产生的中断，与可能正在等待来自设备 I/O 的进程进行交互</li>
+<li>driver 代码可能很复杂，因为驱动程序与它管理的设备要同时执行</li>
+<li>driver 必须了解设备的硬件接口，接口可能很复杂且缺乏文档记录</li>
+<li>后续驱动程序用 driver 表示<del>（别问，问就是 driver 在一堆中文里更清晰）</del></li>
+</ul>
+</li>
+<li><p>中断（Interrupt）</p>
+<ul>
+<li>设备需要操作系统特别关注，它可以进行配置，产生中断（trap 的一种）</li>
+<li>当设备发起中断，内核 trap 处理代码能识别出设备中断并调用驱动程序的中断处理程序</li>
+<li>在 xv6 中，中断处理的分配在 <code>devintr</code> 函数中</li>
+</ul>
+</li>
+<li><p>许多设备 driver 在两个上下文中执行代码</p>
+<ul>
+<li>在进程的内核线程中执行前半部分<ul>
+<li>前半部分由需要执行 I/O 的系统调用（如 <code>read</code> 和 <code>write</code>）来调用</li>
+<li>此代码可能请求硬件启动操作（如请求硬盘读取块），然后等待操作完成</li>
+<li>最后设备完成操作，发起中断</li>
+</ul>
+</li>
+<li>在中断时执行后半部分<ul>
+<li>driver 的中断处理程序作为后半部分</li>
+<li>它找到设备完成的操作，在适当的情况唤醒正在等待的进程</li>
+<li>告诉硬件开始处理下一个操作</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3 id="代码：控制台输入"><a href="#代码：控制台输入" class="headerlink" title="代码：控制台输入"></a>代码：控制台输入</h3><h4 id="控制台连接到-RISC-V"><a href="#控制台连接到-RISC-V" class="headerlink" title="控制台连接到 RISC-V"></a>控制台连接到 RISC-V</h4><p>控制台 driver 位于 kernel/console.c，可作为驱动程序结构的一个简单说明</p>
+<p>xv6 的控制台 driver 交互的 UART 硬件是 QEMU 仿真的 16550 芯片，在真实的计算机，一个 16550 芯片管理 RS232 串行链路，连接着一个中断或其他计算机。当运行 QEMU 时，它连接着键盘和显示器</p>
+<p>控制台 driver 一次累积一行的输入，处理特殊的输入字符，如退格 backspace 和 control-u</p>
+<p>当用户在 QEMU 中向 xv6 输入时，击键通过 QEMU 模拟的 UART 硬件传递给 xv6</p>
+<ul>
+<li>一些物理地址由 RISC-V 硬件连接到 UART 设备<ul>
+<li>从这些物理地址读写是与设备硬件交互而不是内存</li>
+<li>UART 的内存映射地址从 0x10000000 （或 <code>UART0</code> kenrel/memlayout.h）开始</li>
+</ul>
+</li>
+</ul>
+<h4 id="控制寄存器"><a href="#控制寄存器" class="headerlink" title="控制寄存器"></a>控制寄存器</h4><p>UART 硬件在软件层面为一组内存映射的控制寄存器（这里的寄存器并不是 CPU 寄存器，而且位于 UART 硬件中的寄存器）</p>
+<ul>
+<li>UART 控制寄存器宽度为 1 Byte，它们在 <code>UART0</code> 的偏移在 kernel/uart.c 中定义</li>
+<li>LSR <ul>
+<li>line status register</li>
+<li>比特位表示输入的字符是否在等待软件读取</li>
+</ul>
+</li>
+<li>RHR<ul>
+<li>receive holding register</li>
+<li>保存等待读取的字符</li>
+<li>每次一个字符被读取，UART 硬件将它从一个 FIFO 的结构中删除</li>
+<li>当 FIFO 结构为空时将 LSR 的 ready 位清零</li>
+</ul>
+</li>
+<li>THR<ul>
+<li>transimit holding register</li>
+<li>保存等待传输的字符</li>
+</ul>
+</li>
+</ul>
+<p>UART 传输硬件很大程度上独立于接收硬件，如果软件向 THR 写 1 Byte，UART 就传输该字节</p>
+<h4 id="xv6-的控制台输入"><a href="#xv6-的控制台输入" class="headerlink" title="xv6 的控制台输入"></a>xv6 的控制台输入</h4><p>xv6 的 <code>main</code> 调用 <code>consoleinit</code> 来初始化 UART 硬件，配置 UART 让它每接收到 1 Byte 输入就生成一个 receive 中断，每完成 1 Byte 的输出就生成一个 transmit complete 中断</p>
+<ul>
+<li>用户进程，如 shell，通过 user/init.c 打开的文件描述符，使用 <code>read</code> 系统调用从控制台获取输入行</li>
+<li><code>read</code> 系统调用通过内核的 <code>consoleread</code> 完成操作</li>
+<li><code>consoleread</code> 等待输入（通过中断），然后将字符放入 cons.buf 作为缓冲，把输入复制到用户空间，直到一整行输入到达，返回到用户进程<ul>
+<li>如果用户还没有输入一整行，任何需要读取的进程都在 <code>sleep</code> 调用中等待</li>
+</ul>
+</li>
+</ul>
+<p>当用户输入一个字符</p>
+<ul>
+<li>UART 硬件请求 RISC-V 发起中断，激活 xv6 的 trap 处理程序</li>
+<li>trap 处理程序会调用 <code>devintr</code>，从 scause 寄存器查找中断来自哪个外部设备，然后告诉 PLIC 硬件单元哪个设备发出中断，如果来自 UART，<code>devintr</code> 会调用 <code>uartintr</code></li>
+<li><code>uartintr</code> 读取来自 UART 硬件的等待输入的字符（RHR），将它们传给 <code>consoleintr</code></li>
+<li><code>consoleintr</code> 会将字符积累在 cons.buf，但对 backspace 和一些其他字符特殊处理</li>
+<li>当一行新的字符到达（读取到 ‘\n’）时，<code>consoleintr</code> 会唤醒一个正在等着等待的 <code>consoleread</code></li>
+</ul>
+<h3 id="代码：控制台输出"><a href="#代码：控制台输出" class="headerlink" title="代码：控制台输出"></a>代码：控制台输出</h3><p>设备 driver 维护一个输入缓冲区 uart_tx_buf，因此需要输出的进程不需要等待 UART 完成发送，除非缓冲区已满</p>
+<ul>
+<li><code>write</code> 系统调用使用连接着控制台的文件描述符，最终会到达 <code>uartputc</code></li>
+<li><code>uartputc</code> 将每个字符加入缓冲区，调用 <code>uartstart</code> 开始设备传输并返回</li>
+</ul>
+<p>UART 每完成一个字节的发送，就会发起中断，<code>uartintr</code> 调用 <code>uartstart</code> 检查设备是否已经完成发送，然后将下一个缓冲的输出字符传给设备</p>
+<p>如果一个进程将多个字节写入控制台，第一个字节会由 <code>uartputc</code> 调用的 <code>uartstart</code> 来发送，剩下的字节由 <code>uartintr</code> 调用的 <code>uartstart</code> 来发送</p>
+<p>需要注意的是，这里通过缓冲和中断将设备活动和进程活动进行解耦</p>
+<p>控制台 driver 可以处理输入，即使没有进程等待读取，一个后来的读取可以看到输入；进程可以不等待设备发送输出</p>
+<p>解耦通过允许进程与设备 I/O 同时执行来提高性能，当设备速度慢（如 UART）或需要即时响应（如回应键入的字符）时尤其重要</p>
+<p>这也被称为 I/O 并行</p>
+<h3 id="驱动程序中的并发"><a href="#驱动程序中的并发" class="headerlink" title="驱动程序中的并发"></a>驱动程序中的并发</h3><p>你可能注意到在 <code>consoleread</code> 和 <code>consoleintr</code> 中调用 <code>acquire</code></p>
+<p>这个调用申请一个🔒，保护控制台 driver 的数据结构免受并发访问影响</p>
+<p>三个并发危险，可能会导致竞争或死锁</p>
+<ul>
+<li>两个在不同 CPU 核的进程同时调用 <code>consoleread</code></li>
+<li>当 CPU 正在执行 <code>consoleread</code> 时，硬件可能请求该 CPU 发送控制台中断</li>
+<li>当 CPU 正在执行 <code>consoleread</code> 时，硬件可能在另一个 CPU 中发送控制台中断</li>
+</ul>
+<p>drivers 的并发另一个需要小心的地方：一个进程可能等待设备输入，当另一个进程在运行时，输入的中断信号可能到达</p>
+<p>中断处理程序不会考虑中断的进程和代码，例如一个中断处理程序无法安全地使用当前进程的页表调用 <code>copyout</code>，它只会做很少量的工作（如，将输入数据复制到缓冲区），并唤醒前半部分代码完成其余工作</p>
+<h3 id="定时器中断"><a href="#定时器中断" class="headerlink" title="定时器中断"></a>定时器中断</h3><p>Xv6 使用定时器中断维持时钟，使其能在进程之间切换进行调度</p>
+<p><code>usertrap</code> 和 <code>kerneltrap</code> 中的 <code>yield</code> 调用也会导致这类切换</p>
+<p>定时器中断来自 RISC-V 中每个 CPU 的时钟硬件，xv6 对这个时钟硬件编程，以定期中断每个 CPU</p>
+<p>RISC-V 要求计时器中断要由机器模式接管，而不是管理者模式</p>
+<p>RISC-V 机器模式不用分页执行代码，使用一组独立的控制寄存器，因此在机器模式执行普通的 xv6 内核代码时是不实际的</p>
+<p>因此 xv6 将定时器中断独立于之前使用的 trap 机制进行处理</p>
+<p>机器模式执行的代码在 kernel/start.c 中，在执行 <code>main</code> 之前，设置定时器中断的接收</p>
+<ul>
+<li>对 CLINT（core-local interruptor）硬件进行编程，以在一定延迟后生成中断</li>
+<li>设立一个类似 trapframe 的临时区域，帮助定时器中断处理程序保存寄存器和 CLINT 寄存器的地址</li>
+<li>最后 <code>start</code> 将 mtvec 设置为 <code>timervec</code>（在 kernel/kernelvec.S 中），启用定时器中断</li>
+</ul>
+<h3 id="真实世界-3"><a href="#真实世界-3" class="headerlink" title="真实世界"></a>真实世界</h3><p>xv6 允许在执行内核和用户程序时启用设备和定时器中断</p>
+<p>定时器中断强制线程切换，即使是在内核态运行，因此内核代码需要注意它可能被挂起，并在不同的 CPU 上恢复</p>
+<p>如果内核线程有时花费大量时间计算而不返回用户空间，在内核线程之间公平地对 CPU 进行时间切片是有效的</p>
+<p>如果只在执行用户代码时发生设备和定时器中断，会让内核更简单</p>
+<p>在一台计算机上支持所有设备是一项艰巨的工作，因为有许多设备，有许多功能，设备和 driver 之间的协议可能很复杂且缺乏文档。在许多操作系统中，driver 比内核核心代码占用更多</p>
+<p>UART driver 通过读取 UART 控制寄存器一次检索 1 Byte 的数据，称为 programmed I/O，因为软件正在驱动数据移动</p>
+<h4 id="DMA"><a href="#DMA" class="headerlink" title="DMA"></a>DMA</h4><ul>
+<li>编程 I/O 很简单，但是速度太慢，无法在高数据速率下使用</li>
+<li>xv6 的 UART driver 先将传入的数据复制到内核的缓冲区，再复制到用户空间，在低数据速率时有效，但如果设备产生或使用数据很快，两次复制会严重降低性能</li>
+</ul>
+<p>因此有直接存储器访问（DMA）技术</p>
+<ul>
+<li>DMA 硬件设备直接将传入的数据写入 RAM，并从 RAM 读取传出的数据</li>
+<li>高速移动大量数据的设备（现代磁盘和网络设备）通常使用直接存储器访问（DMA）</li>
+</ul>
+<p>一些操作系统常使用 DMA 直接将数据在用户空间的缓冲区和设备硬件之间移动</p>
+<p>DMA 设备 driver 在 RAM 中准备数据，对一个控制寄存器进行一次写入告诉设备去处理准备好的数据</p>
+<h4 id="中断优化"><a href="#中断优化" class="headerlink" title="中断优化"></a>中断优化</h4><p>当一个设备在不可预测的时间需要关注时，中断是有意义的，但是中断有很高的 CPU 开销</p>
+<p>高速设备（如网络和磁盘控制器）使用一些技巧减少中断的需求</p>
+<ul>
+<li>对整批传入或传出的请求发起一个中断</li>
+<li>轮询：完全禁用中断，定期检查设备是否需要关注</li>
+</ul>
+<p>如果设备执行操作非常快，轮询效率较高，但是如果设备大部分时间处于空闲状态，则会浪费 CPU 时间</p>
+<p>某些驱动程序根据当前设备负载会在轮询和中断之间动态切换</p>
+<h4 id="设备使用"><a href="#设备使用" class="headerlink" title="设备使用"></a>设备使用</h4><p>如第 1 章所述，控制台在应用程序呈现为一个常规文件，应用程序通过 <code>read</code> 和 <code>write</code> 系统调用读取输入，写入输出</p>
+<p>应用程序可能想要控制不能作为标准文件系统调用的设备，Unix 操作系统支持 ioctl 系统调用应对这种情况</p>
+<h4 id="实时响应"><a href="#实时响应" class="headerlink" title="实时响应"></a>实时响应</h4><p>计算机的一些使用需要系统在有限的时间内做出响应（严格安全的系统错过 deadline 可能会导致灾难）</p>
+<p>xv6 不适合严格实时设置，严格实时操作系统往往是与应用程序链接的库，允许进行分析最坏情况下的响应时间</p>
+<p>xv6 也不适合软实时应用程序，偶尔错过 deadline 是可以接受的，因为 xv6 调用程序过于简单，并且它在内核代码路径中有一段较长时间中断是禁止的</p>
+</div><div class="article-licensing box"><div class="licensing-title"><p>Xv6</p><p><a href="https://humoooor.cn/2022/10/14/Xv6/">https://humoooor.cn/2022/10/14/Xv6/</a></p></div><div class="licensing-meta level is-mobile"><div class="level-left"><div class="level-item is-narrow"><div><h6>作者</h6><p>Humoooor</p></div></div><div class="level-item is-narrow"><div><h6>发布于</h6><p>2022-10-14</p></div></div><div class="level-item is-narrow"><div><h6>更新于</h6><p>2022-11-17</p></div></div><div class="level-item is-narrow"><div><h6>许可协议</h6><p><a class="icons" rel="noopener" target="_blank" title="Creative Commons" href="https://creativecommons.org/"><i class="icon fab fa-creative-commons"></i></a><a class="icons" rel="noopener" target="_blank" title="Attribution" href="https://creativecommons.org/licenses/by/4.0/"><i class="icon fab fa-creative-commons-by"></i></a><a class="icons" rel="noopener" target="_blank" title="Noncommercial" href="https://creativecommons.org/licenses/by-nc/4.0/"><i class="icon fab fa-creative-commons-nc"></i></a></p></div></div></div></div></div><div class="article-tags is-size-7 mb-4"><span class="mr-2">#</span><a class="link-muted mr-2" rel="tag" href="/tags/Operating-System/">Operating System</a></div><!--!--></article></div><!--!--><nav class="post-navigation mt-4 level is-mobile"><div class="level-start"><a class="article-nav-prev level level-item link-muted" href="/2022/10/20/Lab2_system_calls/"><i class="level-item fas fa-chevron-left"></i><span class="level-item">Lab2 System Calls</span></a></div><div class="level-end"><a class="article-nav-next level level-item link-muted" href="/2022/10/13/Lab1_Xv6_and_Unix_utilities/"><span class="level-item">Lab1 Xv6 and Unix utilities</span><i class="level-item fas fa-chevron-right"></i></a></div></nav><div class="card"><div class="card-content"><h3 class="title is-5">评论</h3><div id="comment-container"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1.7.2/dist/gitalk.css"><script src="https://cdn.jsdelivr.net/npm/gitalk@1.7.2/dist/gitalk.min.js"></script><script>var gitalk = new Gitalk({
+            id: "cff6d405809c0c722be4f20e93aaa719",
+            repo: "humoooor.github.io",
+            owner: "Humoooor",
+            clientID: "2262fbb1802e5dc5cc56",
+            clientSecret: "55e61f8ed70fa2bcec90cf254ac1864f21cb350b",
+            admin: ["Humoooor"],
+            createIssueManually: false,
+            distractionFreeMode: false,
+            perPage: 10,
+            pagerDirection: "last",
+            
+            
+            enableHotKey: true,
+            
+        })
+        gitalk.render('comment-container')</script></div></div></div><div class="column column-left is-4-tablet is-4-desktop is-3-widescreen  order-1"><div class="card widget" data-type="profile"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="avatar" src="/img/MyLogo.jpg" alt="Humoooor"></figure><p class="title is-size-4 is-block" style="line-height:inherit;">Humoooor</p><p class="is-size-6 is-block">Free to Hack</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>China</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">文章</p><a href="/archives"><p class="title">8</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">分类</p><a href="/categories"><p class="title">4</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">标签</p><a href="/tags"><p class="title">2</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://github.com/humoooor" target="_blank" rel="noopener">关注我</a></div><div class="level is-mobile is-multiline"><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Github" href="https://github.com/humoooor"><i class="fab fa-github"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Email" href="mailto:humoooor@qq.com"><i class="fa fa-envelope"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="RSS" href="/atom.xml"><i class="fas fa-rss"></i></a></div></div></div><div class="card widget" data-type="recent-posts"><div class="card-content"><h3 class="menu-label">最新文章</h3><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-11-12T01:25:00.000Z">2022-11-12</time></p><p class="title"><a href="/2022/11/12/Lab5_Copy_on_write_fork/">Lab5 Copy-on-write fork</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-31T03:47:00.000Z">2022-10-31</time></p><p class="title"><a href="/2022/10/31/Lab4_Traps/">Lab4 Traps</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-23T08:56:00.000Z">2022-10-23</time></p><p class="title"><a href="/2022/10/23/Lab3_Page_tables/">Lab3 Page Tables</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-20T01:36:00.000Z">2022-10-20</time></p><p class="title"><a href="/2022/10/20/Lab2_system_calls/">Lab2 System Calls</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-14T02:51:00.000Z">2022-10-14</time></p><p class="title"><a href="/2022/10/14/Xv6/">Xv6</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article></div></div><div class="card widget" data-type="archives"><div class="card-content"><div class="menu"><h3 class="menu-label">归档</h3><ul class="menu-list"><li><a class="level is-mobile" href="/archives/2022/"><span class="level-start"><span class="level-item">2022</span></span><span class="level-end"><span class="level-item tag">8</span></span></a></li></ul></div></div></div><div class="card widget" data-type="tags"><div class="card-content"><div class="menu"><h3 class="menu-label">标签</h3><div class="field is-grouped is-grouped-multiline"><div class="control"><a class="tags has-addons" href="/tags/Operating-System/"><span class="tag">Operating System</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/Pwn/"><span class="tag">Pwn</span><span class="tag">1</span></a></div></div></div></div></div><div class="column-right-shadow is-hidden-widescreen is-sticky"></div></div><div class="column column-right is-4-tablet is-4-desktop is-3-widescreen is-hidden-touch is-hidden-desktop-only order-3 is-sticky"><div class="card widget" id="toc" data-type="toc"><div class="card-content"><div class="menu"><h3 class="menu-label">目录</h3><ul class="menu-list"><li><a class="level is-mobile" href="#Chapter-1-Operating-system-interfaces"><span class="level-left"><span class="level-item">1</span><span class="level-item">Chapter 1 Operating system interfaces</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#进程和内存"><span class="level-left"><span class="level-item">1.1</span><span class="level-item">进程和内存</span></span></a></li><li><a class="level is-mobile" href="#I-O-和文件描述符"><span class="level-left"><span class="level-item">1.2</span><span class="level-item">I/O 和文件描述符</span></span></a></li><li><a class="level is-mobile" href="#管道"><span class="level-left"><span class="level-item">1.3</span><span class="level-item">管道</span></span></a></li><li><a class="level is-mobile" href="#文件系统"><span class="level-left"><span class="level-item">1.4</span><span class="level-item">文件系统</span></span></a></li><li><a class="level is-mobile" href="#真实世界"><span class="level-left"><span class="level-item">1.5</span><span class="level-item">真实世界</span></span></a></li></ul></li><li><a class="level is-mobile" href="#Chapter-2-Operating-system-organization"><span class="level-left"><span class="level-item">2</span><span class="level-item">Chapter 2 Operating system organization</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#抽象物理资源"><span class="level-left"><span class="level-item">2.1</span><span class="level-item">抽象物理资源</span></span></a></li><li><a class="level is-mobile" href="#用户-管理者模式，系统调用"><span class="level-left"><span class="level-item">2.2</span><span class="level-item">用户/管理者模式，系统调用</span></span></a></li><li><a class="level is-mobile" href="#内核架构"><span class="level-left"><span class="level-item">2.3</span><span class="level-item">内核架构</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#宏内核设计"><span class="level-left"><span class="level-item">2.3.1</span><span class="level-item">宏内核设计</span></span></a></li><li><a class="level is-mobile" href="#微内核设计"><span class="level-left"><span class="level-item">2.3.2</span><span class="level-item">微内核设计</span></span></a></li></ul></li><li><a class="level is-mobile" href="#xv6-kernel-代码架构"><span class="level-left"><span class="level-item">2.4</span><span class="level-item">xv6 kernel 代码架构</span></span></a></li><li><a class="level is-mobile" href="#进程"><span class="level-left"><span class="level-item">2.5</span><span class="level-item">进程</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#地址空间"><span class="level-left"><span class="level-item">2.5.1</span><span class="level-item">地址空间</span></span></a></li><li><a class="level is-mobile" href="#进程状态"><span class="level-left"><span class="level-item">2.5.2</span><span class="level-item">进程状态</span></span></a></li><li><a class="level is-mobile" href="#栈空间"><span class="level-left"><span class="level-item">2.5.3</span><span class="level-item">栈空间</span></span></a></li></ul></li><li><a class="level is-mobile" href="#启动-xv6，第一个进程和系统调用的代码"><span class="level-left"><span class="level-item">2.6</span><span class="level-item">启动 xv6，第一个进程和系统调用的代码</span></span></a></li><li><a class="level is-mobile" href="#安全模型"><span class="level-left"><span class="level-item">2.7</span><span class="level-item">安全模型</span></span></a></li><li><a class="level is-mobile" href="#真实世界-1"><span class="level-left"><span class="level-item">2.8</span><span class="level-item">真实世界</span></span></a></li></ul></li><li><a class="level is-mobile" href="#Chapter-3-Page-tables"><span class="level-left"><span class="level-item">3</span><span class="level-item">Chapter 3 Page tables</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#分页硬件"><span class="level-left"><span class="level-item">3.1</span><span class="level-item">分页硬件</span></span></a></li><li><a class="level is-mobile" href="#内核地址空间"><span class="level-left"><span class="level-item">3.2</span><span class="level-item">内核地址空间</span></span></a></li><li><a class="level is-mobile" href="#代码：创建一个地址空间"><span class="level-left"><span class="level-item">3.3</span><span class="level-item">代码：创建一个地址空间</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#系统启动"><span class="level-left"><span class="level-item">3.3.1</span><span class="level-item">系统启动</span></span></a></li></ul></li><li><a class="level is-mobile" href="#物理内存分配"><span class="level-left"><span class="level-item">3.4</span><span class="level-item">物理内存分配</span></span></a></li><li><a class="level is-mobile" href="#代码：物理内存分配器"><span class="level-left"><span class="level-item">3.5</span><span class="level-item">代码：物理内存分配器</span></span></a></li><li><a class="level is-mobile" href="#进程地址空间"><span class="level-left"><span class="level-item">3.6</span><span class="level-item">进程地址空间</span></span></a></li><li><a class="level is-mobile" href="#代码：sbrk"><span class="level-left"><span class="level-item">3.7</span><span class="level-item">代码：sbrk</span></span></a></li><li><a class="level is-mobile" href="#代码：exec"><span class="level-left"><span class="level-item">3.8</span><span class="level-item">代码：exec</span></span></a></li><li><a class="level is-mobile" href="#Real-world"><span class="level-left"><span class="level-item">3.9</span><span class="level-item">Real world</span></span></a></li></ul></li><li><a class="level is-mobile" href="#Chapter-4-Traps-and-system-calls"><span class="level-left"><span class="level-item">4</span><span class="level-item">Chapter 4 Traps and system calls</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#RISC-V-trap-机制"><span class="level-left"><span class="level-item">4.1</span><span class="level-item">RISC-V trap 机制</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#寄存器"><span class="level-left"><span class="level-item">4.1.1</span><span class="level-item">寄存器</span></span></a></li><li><a class="level is-mobile" href="#处理-trap-前"><span class="level-left"><span class="level-item">4.1.2</span><span class="level-item">处理 trap 前</span></span></a></li><li><a class="level is-mobile" href="#相关的汇编指令"><span class="level-left"><span class="level-item">4.1.3</span><span class="level-item">相关的汇编指令</span></span></a></li></ul></li><li><a class="level is-mobile" href="#用户-trap"><span class="level-left"><span class="level-item">4.2</span><span class="level-item">用户 trap</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#trampoline"><span class="level-left"><span class="level-item">4.2.1</span><span class="level-item">trampoline</span></span></a></li><li><a class="level is-mobile" href="#trapframe"><span class="level-left"><span class="level-item">4.2.2</span><span class="level-item">trapframe</span></span></a></li><li><a class="level is-mobile" href="#uservec"><span class="level-left"><span class="level-item">4.2.3</span><span class="level-item">uservec</span></span></a></li><li><a class="level is-mobile" href="#usertrap"><span class="level-left"><span class="level-item">4.2.4</span><span class="level-item">usertrap</span></span></a></li><li><a class="level is-mobile" href="#usertrapret"><span class="level-left"><span class="level-item">4.2.5</span><span class="level-item">usertrapret</span></span></a></li><li><a class="level is-mobile" href="#userret"><span class="level-left"><span class="level-item">4.2.6</span><span class="level-item">userret</span></span></a></li></ul></li><li><a class="level is-mobile" href="#代码：调用系统调用"><span class="level-left"><span class="level-item">4.3</span><span class="level-item">代码：调用系统调用</span></span></a></li><li><a class="level is-mobile" href="#代码：系统调用参数"><span class="level-left"><span class="level-item">4.4</span><span class="level-item">代码：系统调用参数</span></span></a></li><li><a class="level is-mobile" href="#内核-trap"><span class="level-left"><span class="level-item">4.5</span><span class="level-item">内核 trap</span></span></a></li><li><a class="level is-mobile" href="#页面错误异常"><span class="level-left"><span class="level-item">4.6</span><span class="level-item">页面错误异常</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#COW-fork"><span class="level-left"><span class="level-item">4.6.1</span><span class="level-item">COW fork</span></span></a></li><li><a class="level is-mobile" href="#Lazy-allocation"><span class="level-left"><span class="level-item">4.6.2</span><span class="level-item">Lazy allocation</span></span></a></li><li><a class="level is-mobile" href="#Demand-paging"><span class="level-left"><span class="level-item">4.6.3</span><span class="level-item">Demand paging</span></span></a></li><li><a class="level is-mobile" href="#Paging-to-disk"><span class="level-left"><span class="level-item">4.6.4</span><span class="level-item">Paging to disk</span></span></a></li></ul></li><li><a class="level is-mobile" href="#真实世界-2"><span class="level-left"><span class="level-item">4.7</span><span class="level-item">真实世界</span></span></a></li></ul></li><li><a class="level is-mobile" href="#Chapter-5-Interrupts-and-device-drivers"><span class="level-left"><span class="level-item">5</span><span class="level-item">Chapter 5 Interrupts and device drivers</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#代码：控制台输入"><span class="level-left"><span class="level-item">5.1</span><span class="level-item">代码：控制台输入</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#控制台连接到-RISC-V"><span class="level-left"><span class="level-item">5.1.1</span><span class="level-item">控制台连接到 RISC-V</span></span></a></li><li><a class="level is-mobile" href="#控制寄存器"><span class="level-left"><span class="level-item">5.1.2</span><span class="level-item">控制寄存器</span></span></a></li><li><a class="level is-mobile" href="#xv6-的控制台输入"><span class="level-left"><span class="level-item">5.1.3</span><span class="level-item">xv6 的控制台输入</span></span></a></li></ul></li><li><a class="level is-mobile" href="#代码：控制台输出"><span class="level-left"><span class="level-item">5.2</span><span class="level-item">代码：控制台输出</span></span></a></li><li><a class="level is-mobile" href="#驱动程序中的并发"><span class="level-left"><span class="level-item">5.3</span><span class="level-item">驱动程序中的并发</span></span></a></li><li><a class="level is-mobile" href="#定时器中断"><span class="level-left"><span class="level-item">5.4</span><span class="level-item">定时器中断</span></span></a></li><li><a class="level is-mobile" href="#真实世界-3"><span class="level-left"><span class="level-item">5.5</span><span class="level-item">真实世界</span></span></a><ul class="menu-list"><li><a class="level is-mobile" href="#DMA"><span class="level-left"><span class="level-item">5.5.1</span><span class="level-item">DMA</span></span></a></li><li><a class="level is-mobile" href="#中断优化"><span class="level-left"><span class="level-item">5.5.2</span><span class="level-item">中断优化</span></span></a></li><li><a class="level is-mobile" href="#设备使用"><span class="level-left"><span class="level-item">5.5.3</span><span class="level-item">设备使用</span></span></a></li><li><a class="level is-mobile" href="#实时响应"><span class="level-left"><span class="level-item">5.5.4</span><span class="level-item">实时响应</span></span></a></li></ul></li></ul></li></ul></div></div><style>#toc .menu-list > li > a.is-active + .menu-list { display: block; }#toc .menu-list > li > a + .menu-list { display: none; }</style><script src="/js/toc.js" defer></script></div></div></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/"><img src="/img/MyLogo.jpg" alt="Humoooor&#039;s Blog" height="28"></a><p class="is-size-7"><span>&copy; 2023 Humoooor</span>  Powered by <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank" rel="noopener">Icarus</a></p></div><div class="level-end"><div class="field has-addons"><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/"><i class="fab fa-creative-commons-by"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/humoooor"><i class="fab fa-github"></i></a></p></div></div></div></div></footer><script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script><script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script><script>moment.locale("zh-cn");</script><script>var IcarusThemeSettings = {
+            article: {
+                highlight: {
+                    clipboard: true,
+                    fold: 'unfolded'
+                }
+            }
+        };</script><script src="/js/column.js"></script><script src="/js/animation.js"></script><a id="back-to-top" title="回到顶端" href="javascript:;"><i class="fas fa-chevron-up"></i></a><script src="/js/back_to_top.js" defer></script><!--!--><!--!--><!--!--><script src="https://cdn.jsdelivr.net/npm/cookieconsent@3.1.1/build/cookieconsent.min.js" defer></script><script>window.addEventListener("load", () => {
+      window.cookieconsent.initialise({
+        type: "info",
+        theme: "edgeless",
+        static: false,
+        position: "bottom-left",
+        content: {
+          message: "此网站使用Cookie来改善您的体验。",
+          dismiss: "知道了！",
+          allow: "允许使用Cookie",
+          deny: "拒绝",
+          link: "了解更多",
+          policy: "Cookie政策",
+          href: "https://www.cookiesandyou.com/",
+        },
+        palette: {
+          popup: {
+            background: "#edeff5",
+            text: "#838391"
+          },
+          button: {
+            background: "#4b81e8"
+          },
+        },
+      });
+    });</script><script src="https://cdn.jsdelivr.net/npm/lightgallery@1.10.0/dist/js/lightgallery.min.js" defer></script><script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.8.1/dist/js/jquery.justifiedGallery.min.js" defer></script><script>window.addEventListener("load", () => {
+            if (typeof $.fn.lightGallery === 'function') {
+                $('.article').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof $.fn.justifiedGallery === 'function') {
+                if ($('.justified-gallery > p > .gallery-item').length) {
+                    $('.justified-gallery > p > .gallery-item').unwrap();
+                }
+                $('.justified-gallery').justifiedGallery();
+            }
+        });</script><!--!--><!--!--><!--!--><!--!--><!--!--><script src="/js/main.js" defer></script><div class="searchbox"><div class="searchbox-container"><div class="searchbox-header"><div class="searchbox-input-container"><input class="searchbox-input" type="text" placeholder="想要查找什么..."></div><a class="searchbox-close" href="javascript:;">×</a></div><div class="searchbox-body"></div></div></div><script src="/js/insight.js" defer></script><script>document.addEventListener('DOMContentLoaded', function () {
+            loadInsight({"contentUrl":"/content.json"}, {"hint":"想要查找什么...","untitled":"(无标题)","posts":"文章","pages":"页面","categories":"分类","tags":"标签"});
+        });</script></body></html>
