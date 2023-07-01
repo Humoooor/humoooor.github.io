@@ -6,7 +6,7 @@
   <link href="https://humoooor.cn/atom.xml" rel="self"/>
   
   <link href="https://humoooor.cn/"/>
-  <updated>2023-06-01T12:32:30.182Z</updated>
+  <updated>2023-07-01T04:28:36.106Z</updated>
   <id>https://humoooor.cn/</id>
   
   <author>
@@ -15,6 +15,25 @@
   </author>
   
   <generator uri="https://hexo.io/">Hexo</generator>
+  
+  <entry>
+    <title>2023.06</title>
+    <link href="https://humoooor.cn/2023/06/05/2023.06/"/>
+    <id>https://humoooor.cn/2023/06/05/2023.06/</id>
+    <published>2023-06-05T03:04:00.000Z</published>
+    <updated>2023-07-01T04:28:36.106Z</updated>
+    
+    <content type="html"><![CDATA[<p>学习的六月</p><span id="more"></span><h2 id="Week-9-2023-06-01-2023-06-04"><a href="#Week-9-2023-06-01-2023-06-04" class="headerlink" title="Week 9 (2023.06.01 - 2023.06.04)"></a>Week 9 (2023.06.01 - 2023.06.04)</h2><p>本来想着看 xv6 的视频，结果看着看着，跑去看线程切换的源码了，算是基本搞懂了原理</p><p>把计网和通原实验做完了，还挺有意思（笑）</p><p>🏓 75 分，略低 😰</p><p>下周期望</p><ul><li>完成内容安全和智能终端安全作业</li><li>开始预习</li></ul><h2 id="Week-10-2023-06-05-2023-06-11"><a href="#Week-10-2023-06-05-2023-06-11" class="headerlink" title="Week 10 (2023.06.05 - 2023.06.11)"></a>Week 10 (2023.06.05 - 2023.06.11)</h2><p>和 Jam 复习协议和软件，Jam 好强</p><h2 id="Week-11-2023-06-12-2023-06-18"><a href="#Week-11-2023-06-12-2023-06-18" class="headerlink" title="Week 11 (2023.06.12 - 2023.06.18)"></a>Week 11 (2023.06.12 - 2023.06.18)</h2><p>考完协议和软件了捏</p><p>这 b AI 实验我是一辈子不想再做了（<del>什么 b 课都来蹭 AI，笑</del>）</p><p>换手机了，芜湖</p><h2 id="Week-12-2023-06-19-2023-06-25"><a href="#Week-12-2023-06-19-2023-06-25" class="headerlink" title="Week 12 (2023.06.19 - 2023.06.25)"></a>Week 12 (2023.06.19 - 2023.06.25)</h2><p>人工智能复习半小时，考试半小时（乐）</p><p>出去和对象玩耍，拍了好多照片，好好看🥰</p><h2 id="Week-13-2023-06-26-2023-06-30"><a href="#Week-13-2023-06-26-2023-06-30" class="headerlink" title="Week 13 (2023.06.26 - 2023.06.30)"></a>Week 13 (2023.06.26 - 2023.06.30)</h2><p>回高中看望班主任，聊了很多，开心捏</p><p>去❀上班了！</p><ul><li>入职：好激动</li><li>上班第一天：什么时候下班</li></ul><h2 id="总结"><a href="#总结" class="headerlink" title="总结"></a>总结</h2><ul><li>考试搞定了</li><li>实习有着落了</li><li>高中毕业以来第一次去看老师</li></ul><h2 id="期望"><a href="#期望" class="headerlink" title="期望"></a>期望</h2><ul><li>实习好好干，多学容器安全</li><li>xv6 继续看，剖析类 Unix 内核源码（进阶：Linux 内核源码）</li><li>身体健康最重要，早睡早起</li></ul>]]></content>
+    
+    
+    <summary type="html">&lt;p&gt;学习的六月&lt;/p&gt;</summary>
+    
+    
+    
+    <category term="MonthReport" scheme="https://humoooor.cn/categories/MonthReport/"/>
+    
+    
+  </entry>
   
   <entry>
     <title>Xv6 剖析</title>
